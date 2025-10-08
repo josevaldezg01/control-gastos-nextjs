@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PiggyBank, 
   TrendingUp, 
@@ -44,12 +44,20 @@ export const Dashboard: React.FC = () => {
     registrarGasto,
     registrarTransferencia,
     registrarPrestamo,
+    agregarPagoPendiente,
+    completarPago,
+    eliminarPagoPendiente,
+    editarPagoPendiente,
     registrarAbonoPrestamo,
     eliminarPrestamo,
     navegarMes,
     cambiarMesActivo,
     cerrarMes
   } = useGastos();
+
+  useEffect(() => {
+  console.log('🔷 Dashboard detectó cambio de refreshKey:', refreshKey);
+}, [refreshKey]);
 
   const [showMesesAnteriores, setShowMesesAnteriores] = useState(false);
 
@@ -313,7 +321,7 @@ export const Dashboard: React.FC = () => {
         />
 
         {/* Filtro y Historial de Movimientos (combinados) */}
-        <FiltroMovimientos movimientos={movimientos} />
+        <FiltroMovimientos key={`filtro-${refreshKey}`} movimientos={movimientos} />
 
         {/* Préstamos Familiares Activos */}
         <PrestamosFamiliares 
@@ -323,11 +331,19 @@ export const Dashboard: React.FC = () => {
           eliminarPrestamo={eliminarPrestamo}
         />
 
-        {/* Pagos Pendientes */}
-        <div id="pagos-pendientes">
-          <PagosPendientes pagosPendientes={pagosPendientes} />
+       {/* Pagos Pendientes */}
+<section id="pagos-pendientes" className="mb-8">
+  <PagosPendientes 
+  key={`pagos-${refreshKey}`}
+  pagosPendientes={pagosPendientes}
+  mesActivoActual={mesActivoActual}
+  agregarPagoPendiente={agregarPagoPendiente}
+  completarPago={completarPago}
+  eliminarPagoPendiente={eliminarPagoPendiente}
+  editarPagoPendiente={editarPagoPendiente}
+/>
+</section>
         </div>
-      </div>
 
       {/* Modal Meses Anteriores */}
       <MesesAnteriores 

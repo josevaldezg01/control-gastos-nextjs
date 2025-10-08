@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { dbHelpers } from '@/lib/supabase';
-import { obtenerInfoMesActivo } from '@/lib/utils';
+import { obtenerInfoMesActivo, formatoMoneda } from '@/lib/utils';
 import type { 
   Banco, 
   Movimiento, 
@@ -15,7 +15,19 @@ import type {
 import { BANCOS } from '@/lib/types';
 
 export function useGastos() {
-  const [mesActivoActual, setMesActivoActual] = useState<string>('2025-09');
+const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
+  // Verificar que estamos en el navegador
+  if (typeof window !== 'undefined') {
+    const mesGuardado = localStorage.getItem('mesActivoActual');
+    if (mesGuardado) return mesGuardado;
+  }
+  
+  // Calcular mes actual (SIEMPRE se ejecuta como fallback)
+  const hoy = new Date();
+  const año = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  return `${año}-${mes}`;
+});
   const [bancos, setBancos] = useState<SaldosBancos>({
     'Banco de Bogotá': 0,
     'Nequi': 0,
@@ -58,8 +70,14 @@ export function useGastos() {
   const cargarMovimientos = useCallback(async () => {
     try {
       setLoading(true);
+
+      console.log('📅 Cargando movimientos del mes:', mesActivoActual);
+
       const movimientosData = await dbHelpers.getMovimientos(mesActivoActual);
       
+      console.log('📦 Movimientos cargados:', movimientosData?.length || 0);
+      console.log('📋 Primeros 3 movimientos:', movimientosData?.slice(0, 3));
+
       const prestamos = await dbHelpers.getPrestamosActivos();
       const saldoPrestamos = prestamos && prestamos.length > 0
         ? prestamos.reduce((sum, p) => sum + (p.valor_pendiente || 0), 0)
@@ -89,6 +107,8 @@ export function useGastos() {
           }
         }
       });
+
+      console.log('💰 Saldos calculados:', nuevosBancos);
 
       setBancos(nuevosBancos);
       setMovimientos(movimientosData || []);
@@ -303,16 +323,18 @@ export function useGastos() {
     }
   }, [mesActivoActual, cargarMovimientos, bancos]);
 
-  const registrarPrestamo = useCallback(async (
-    bancoOrigen: Banco,
-    valor: number,
-    persona: string,
-    descripcion: string
-  ) => {
-    try {
-      if (valor > bancos[bancoOrigen]) {
-        throw new Error(`Saldo insuficiente en ${bancoOrigen}`);
-      }
+const registrarPrestamo = useCallback(async (
+  bancoOrigen: Banco,
+  valor: number,
+  persona: string,
+  descripcion: string
+) => {
+  try {
+    // Validar saldo suficiente
+    if (valor > bancos[bancoOrigen]) {
+      toast.error(`Saldo insuficiente en ${bancoOrigen}. Tiene: ${formatoMoneda(bancos[bancoOrigen])}, Necesita: ${formatoMoneda(valor)}`);
+      return; // ← Salir sin hacer nada, no lanzar error
+    }
 
       const fecha = new Date().toISOString();
 
@@ -497,52 +519,299 @@ export function useGastos() {
     }
   }, [cargarPagos, mesActivoActual]);
 
-  const completarPago = useCallback(async (
-    idPago: number,
-    bancoDestino: Banco,
-    valor?: number
-  ) => {
-    try {
-      const pago = pagosPendientes.find(p => p.id === idPago);
-      if (!pago) throw new Error('Pago no encontrado');
+ // ============================================
+// ✅ FUNCIÓN COMPLETARPAGO - NUEVA VERSIÓN CON ACTUALIZACIÓN OPTIMISTA
+// ============================================
+const completarPago = useCallback(async (
+  idPago: number,
+  bancoDestino: Banco,
+  valor?: number
+) => {
+  console.log('🟦 Estado de bancos AL INICIAR completarPago:', bancos);
+  try {
+    const pago = pagosPendientes.find(p => p.id === idPago);
+    if (!pago) throw new Error('Pago no encontrado');
 
-      const valorPago = valor || pago.valor;
-      const fecha = new Date().toISOString();
+    const valorPago = valor || pago.valor;
+    
+// 🔍 DEBUG TEMPORAL
+console.log('🔵 Intentando pagar:', {
+  pago: pago.descripcion,
+  valor: valorPago,
+  banco: bancoDestino,
+  saldoActual: bancos[bancoDestino],
+  todosLosBancos: bancos
+});
 
-      // Registrar el gasto
-      await dbHelpers.insertMovimiento({
-        tipo: 'gasto',
-        valor: valorPago,
-        descripcion: `Pago completado: ${pago.descripcion}`,
-        categoria: pago.categoria || 'Pago pendiente',
-        banco_destino: bancoDestino,
-        fecha,
+    // Validar saldo suficiente
+    if (valorPago > bancos[bancoDestino]) {
+      throw new Error(`Saldo insuficiente en ${bancoDestino}`);
+    }
+
+    const fecha = new Date().toISOString();
+
+    // 1️⃣ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE
+
+    console.log('🔵 ANTES - Saldos:', bancos);
+    console.log('🔵 ANTES - Movimientos:', movimientos.length);
+    console.log('🔵 ANTES - Pagos pendientes:', pagosPendientes.length);
+    
+    // Actualizar saldos de bancos
+    setBancos(prev => ({
+      ...prev,
+      [bancoDestino]: prev[bancoDestino] - valorPago
+    }));
+    console.log('🟢 setBancos ejecutado - restó', valorPago);
+    
+    // Crear el movimiento de gasto
+    const nuevoMovimiento: Movimiento = {
+      id: Date.now(),
+      tipo: 'gasto',
+      valor: valorPago,
+      descripcion: `Pago: ${pago.descripcion}`,
+      categoria: pago.categoria || 'Pago pendiente',
+      banco_destino: bancoDestino,
+      fecha,
+      mes_contable: mesActivoActual
+    };
+
+    console.log('🟢 Nuevo movimiento creado:', nuevoMovimiento);
+
+    // Agregar movimiento a la lista
+    setMovimientos(prev => [nuevoMovimiento, ...prev]);
+
+    console.log('🟢 setMovimientos ejecutado');
+
+    // Marcar pago como completado en el estado local
+    setPagosPendientes(prev =>
+      prev.map(p =>
+        p.id === idPago
+          ? {
+              ...p,
+              completado: true,
+              fecha_completado: fecha,
+              banco_destino: bancoDestino,
+              valor_pagado: valorPago
+            }
+          : p
+      )
+    );
+
+    console.log('🟢 setPagosPendientes ejecutado');
+
+    // 2️⃣ FORZAR RE-RENDER INMEDIATO
+    console.log('🟡 Ejecutando setRefreshKey...');
+    setRefreshKey(prev => {
+  console.log('🟡 RefreshKey cambió de', prev, 'a', prev + 1);
+  return prev + 1;
+});
+console.log('🔵 RefreshKey actual en el hook:', refreshKey);
+    // 3️⃣ GUARDAR EN SUPABASE EN SEGUNDO PLANO
+
+    // Registrar el movimiento de gasto
+    await dbHelpers.insertMovimiento({
+      tipo: 'gasto',
+      valor: valorPago,
+      descripcion: `Pago: ${pago.descripcion}`,
+      categoria: pago.categoria || 'Pago pendiente',
+      banco_destino: bancoDestino,
+      fecha,
+      mes_contable: mesActivoActual
+    });
+
+    // Marcar como completado en Supabase
+    await dbHelpers.updatePagoPendiente(idPago, {
+      completado: true,
+      fecha_completado: fecha,
+      banco_destino: bancoDestino,
+      valor_pagado: valorPago
+    });
+
+    // 4️⃣ LÓGICA DE REGENERACIÓN (si es de mes anterior)
+    const pagoMesContable = pago.mes_contable || mesActivoActual;
+    const esMesAnterior = pagoMesContable < mesActivoActual;
+    
+    if (esMesAnterior) {
+      // Calcular nueva fecha de vencimiento si existe
+      let nuevaFechaVencimiento = null;
+      if (pago.fecha_vencimiento) {
+        const fechaOriginal = new Date(pago.fecha_vencimiento);
+        const [anioActual, mesActual] = mesActivoActual.split('-').map(Number);
+        const diaDelMes = fechaOriginal.getDate();
+        nuevaFechaVencimiento = new Date(anioActual, mesActual - 1, diaDelMes).toISOString();
+      }
+
+      // Crear nuevo pago para el mes actual
+      const nuevoPago = {
+        descripcion: pago.descripcion,
+        valor: pago.valor,
+        categoria: pago.categoria,
+        banco_destino: null,
+        fecha_vencimiento: nuevaFechaVencimiento,
+        completado: false,
         mes_contable: mesActivoActual
-      });
+      };
 
-      // Marcar como completado
-      await dbHelpers.updatePagoPendiente(idPago, {
-        completado: true,
-        fecha_completado: fecha,
-        banco_destino: bancoDestino,
-        valor_pagado: valorPago
-      });
+      // Agregar a estado local
+      setPagosPendientes(prev => [{
+        id: Date.now() + 1, // ID temporal
+        ...nuevoPago
+      } as PagoPendiente, ...prev]);
 
-      // ✅ NUEVA LÓGICA: Si el pago era de un mes anterior, crear uno nuevo para el mes actual
-      const pagoMesContable = pago.mes_contable || mesActivoActual;
-      const esMesAnterior = pagoMesContable < mesActivoActual;
+      // Guardar en Supabase
+      await dbHelpers.insertPagoPendiente(nuevoPago);
+
+      toast.success('Pago registrado y creado nuevo para este mes');
+    } else {
+      toast.success('Pago registrado correctamente');
+    }
+
+    console.log('✅ COMPLETADO - Todo ejecutado correctamente');
+    console.log('✅ NO se llama a cargarMovimientos ni cargarPagos');
+
+    // NO llamar a cargarMovimientos() ni cargarPagos() aquí
+    // Ya actualizamos todo localmente
+    
+  } catch (error) {
+    console.error('Error al completar pago:', error);
+    toast.error(error instanceof Error ? error.message : 'Error al registrar el pago');
+    
+    // Si hay error, recargar todo para revertir
+    await Promise.all([cargarMovimientos(), cargarPagos()]);
+    throw error;
+  }
+}, [mesActivoActual, pagosPendientes, bancos, cargarMovimientos, cargarPagos]);
+
+const eliminarPagoPendiente = useCallback(async (idPago: number) => {
+  try {
+    await dbHelpers.deletePagoPendiente(idPago);
+    await cargarPagos();
+    toast.success('Pago pendiente eliminado correctamente');
+  } catch (error) {
+    console.error('Error al eliminar pago pendiente:', error);
+    toast.error('Error al eliminar el pago pendiente');
+    throw error;
+  }
+}, [cargarPagos]);
+
+const editarPagoPendiente = useCallback(async (
+  id: number,
+  descripcion: string,
+  valor: number,
+  fechaVencimiento?: string,
+  categoria?: string
+) => {
+  try {
+    setPagosPendientes(prev => 
+      prev.map(pago => {
+        if (pago.id === id) {
+          const updated = {
+            ...pago,
+            descripcion,
+            valor,
+            fecha_vencimiento: fechaVencimiento || pago.fecha_vencimiento,
+            categoria: categoria || pago.categoria
+          };
+          return updated;
+        }
+        return pago;
+      })
+    );
+
+    setRefreshKey(prev => {
+      return prev + 1;
+    });
+
+    await dbHelpers.updatePagoPendiente(id, {
+      descripcion,
+      valor,
+      fecha_vencimiento: fechaVencimiento || null,
+      categoria: categoria || null
+    });
+
+    toast.success('Pago actualizado correctamente');
+    
+  } catch (error) {
+    console.error('❌ Error al editar pago pendiente:', error);
+    toast.error('Error al actualizar el pago');
+    await cargarPagos();
+    throw error;
+  }
+}, [cargarPagos, pagosPendientes]);
+
+const cambiarMesActivo = useCallback(async () => {
+  try {
+    const nuevoMes = infoMesActivo.proximoFormato;
+    setMesActivoActual(nuevoMes);
+    localStorage.setItem('mesActivoActual', nuevoMes);
+    await cargarMovimientos();
+    toast.success(`Mes activo cambiado a ${infoMesActivo.proximoNombre}`);
+  } catch (error) {
+    console.error('Error al cambiar mes activo:', error);
+    toast.error('Error al cambiar el mes activo');
+  }
+}, [infoMesActivo, cargarMovimientos]);
+
+const navegarMes = useCallback(async (nuevoMes: string) => {
+  try {
+    setMesActivoActual(nuevoMes);
+    localStorage.setItem('mesActivoActual', nuevoMes);
+    await cargarMovimientos();
+    toast.success(`Cambiado a ${obtenerInfoMesActivo(nuevoMes).nombreCompleto}`);
+  } catch (error) {
+    console.error('Error al cambiar mes:', error);
+    toast.error('Error al cambiar el mes');
+  }
+}, [cargarMovimientos]);
+
+const cerrarMes = useCallback(async () => {
+  try {
+    const fechaActual = new Date();
+    const [anio, mes] = mesActivoActual.split('-').map(Number);
+
+    const ingresos = movimientos
+      .filter(m => m.tipo === 'ingreso')
+      .reduce((sum, m) => sum + m.valor, 0);
+    
+    const gastos = movimientos
+      .filter(m => m.tipo === 'gasto')
+      .reduce((sum, m) => sum + m.valor, 0);
+
+    // Guardar historial mensual
+    await dbHelpers.insertHistorialMensual({
+      mes,
+      año: anio,
+      nombre_mes: infoMesActivo.nombreCompleto.split(' ')[0].toLowerCase(),
+      fecha_cierre: fechaActual.toISOString(),
+      ingresos,
+      gastos,
+      balance: ingresos - gastos,
+      saldos: bancos,
+      movimientos,
+      mes_contable: mesActivoActual
+    });
+
+    // Eliminar movimientos del mes cerrado
+    await dbHelpers.deleteMovimientosByMes(mesActivoActual);
+
+    // ✅ NUEVA LÓGICA: Gestión de pagos pendientes al cerrar mes
+    const pagosActuales = await dbHelpers.getPagosPendientes();
+    
+    if (pagosActuales && pagosActuales.length > 0) {
+      // 1. Crear nuevos pagos para el siguiente mes basados en los COMPLETADOS
+      const pagosCompletados = pagosActuales.filter(p => p.completado);
       
-      if (esMesAnterior) {
-        // Calcular nueva fecha de vencimiento si existe
+      for (const pago of pagosCompletados) {
+        // Calcular nueva fecha de vencimiento (mismo día del próximo mes)
         let nuevaFechaVencimiento = null;
         if (pago.fecha_vencimiento) {
           const fechaOriginal = new Date(pago.fecha_vencimiento);
-          const [anioActual, mesActual] = mesActivoActual.split('-').map(Number);
+          const [anioProx, mesProx] = infoMesActivo.proximoFormato.split('-').map(Number);
           const diaDelMes = fechaOriginal.getDate();
-          nuevaFechaVencimiento = new Date(anioActual, mesActual - 1, diaDelMes).toISOString();
+          nuevaFechaVencimiento = new Date(anioProx, mesProx - 1, diaDelMes).toISOString();
         }
 
-        // Crear nuevo pago para el mes actual
+        // Crear nuevo pago para el siguiente mes
         await dbHelpers.insertPagoPendiente({
           descripcion: pago.descripcion,
           valor: pago.valor,
@@ -550,152 +819,44 @@ export function useGastos() {
           banco_destino: null,
           fecha_vencimiento: nuevaFechaVencimiento,
           completado: false,
-          mes_contable: mesActivoActual
+          mes_contable: infoMesActivo.proximoFormato
         });
-
-        toast.success('Pago registrado y creado nuevo para este mes');
-      } else {
-        toast.success('Pago registrado correctamente');
       }
 
-      await Promise.all([cargarMovimientos(), cargarPagos()]);
-    } catch (error) {
-      console.error('Error al completar pago:', error);
-      toast.error(error instanceof Error ? error.message : 'Error al registrar el pago');
-      throw error;
-    }
-  }, [mesActivoActual, cargarMovimientos, cargarPagos, pagosPendientes]);
-
-  const eliminarPagoPendiente = useCallback(async (idPago: number) => {
-    try {
-      await dbHelpers.deletePagoPendiente(idPago);
-      await cargarPagos();
-      toast.success('Pago pendiente eliminado correctamente');
-    } catch (error) {
-      console.error('Error al eliminar pago pendiente:', error);
-      toast.error('Error al eliminar el pago pendiente');
-      throw error;
-    }
-  }, [cargarPagos]);
-
-  const cambiarMesActivo = useCallback(async () => {
-    try {
-      const nuevoMes = infoMesActivo.proximoFormato;
-      setMesActivoActual(nuevoMes);
-      localStorage.setItem('mesActivoActual', nuevoMes);
-      await cargarMovimientos();
-      toast.success(`Mes activo cambiado a ${infoMesActivo.proximoNombre}`);
-    } catch (error) {
-      console.error('Error al cambiar mes activo:', error);
-      toast.error('Error al cambiar el mes activo');
-    }
-  }, [infoMesActivo, cargarMovimientos]);
-
-  const navegarMes = useCallback(async (nuevoMes: string) => {
-    try {
-      setMesActivoActual(nuevoMes);
-      localStorage.setItem('mesActivoActual', nuevoMes);
-      await cargarMovimientos();
-      toast.success(`Cambiado a ${obtenerInfoMesActivo(nuevoMes).nombreCompleto}`);
-    } catch (error) {
-      console.error('Error al cambiar mes:', error);
-      toast.error('Error al cambiar el mes');
-    }
-  }, [cargarMovimientos]);
-
-  const cerrarMes = useCallback(async () => {
-    try {
-      const fechaActual = new Date();
-      const [anio, mes] = mesActivoActual.split('-').map(Number);
-
-      const ingresos = movimientos
-        .filter(m => m.tipo === 'ingreso')
-        .reduce((sum, m) => sum + m.valor, 0);
-      
-      const gastos = movimientos
-        .filter(m => m.tipo === 'gasto')
-        .reduce((sum, m) => sum + m.valor, 0);
-
-      // Guardar historial mensual
-      await dbHelpers.insertHistorialMensual({
-        mes,
-        año: anio,
-        nombre_mes: infoMesActivo.nombreCompleto.split(' ')[0].toLowerCase(),
-        fecha_cierre: fechaActual.toISOString(),
-        ingresos,
-        gastos,
-        balance: ingresos - gastos,
-        saldos: bancos,
-        movimientos,
-        mes_contable: mesActivoActual
-      });
-
-      // Eliminar movimientos del mes cerrado
-      await dbHelpers.deleteMovimientosByMes(mesActivoActual);
-
-      // ✅ NUEVA LÓGICA: Gestión de pagos pendientes al cerrar mes
-      const pagosActuales = await dbHelpers.getPagosPendientes();
-      
-      if (pagosActuales && pagosActuales.length > 0) {
-        // 1. Crear nuevos pagos para el siguiente mes basados en los COMPLETADOS
-        const pagosCompletados = pagosActuales.filter(p => p.completado);
-        
-        for (const pago of pagosCompletados) {
-          // Calcular nueva fecha de vencimiento (mismo día del próximo mes)
-          let nuevaFechaVencimiento = null;
-          if (pago.fecha_vencimiento) {
-            const fechaOriginal = new Date(pago.fecha_vencimiento);
-            const [anioProx, mesProx] = infoMesActivo.proximoFormato.split('-').map(Number);
-            const diaDelMes = fechaOriginal.getDate();
-            nuevaFechaVencimiento = new Date(anioProx, mesProx - 1, diaDelMes).toISOString();
-          }
-
-          // Crear nuevo pago para el siguiente mes
-          await dbHelpers.insertPagoPendiente({
-            descripcion: pago.descripcion,
-            valor: pago.valor,
-            categoria: pago.categoria,
-            banco_destino: null,
-            fecha_vencimiento: nuevaFechaVencimiento,
-            completado: false,
-            mes_contable: infoMesActivo.proximoFormato
-          });
-        }
-
-        // 2. Eliminar SOLO los pagos COMPLETADOS
-        for (const pago of pagosCompletados) {
-          await dbHelpers.deletePagoPendiente(pago.id);
-        }
-
-        // 3. Los pagos SIN PAGAR se quedan automáticamente (no se tocan)
+      // 2. Eliminar SOLO los pagos COMPLETADOS
+      for (const pago of pagosCompletados) {
+        await dbHelpers.deletePagoPendiente(pago.id);
       }
 
-      // Cambiar al siguiente mes
-      const nuevoMes = infoMesActivo.proximoFormato;
-      setMesActivoActual(nuevoMes);
-      localStorage.setItem('mesActivoActual', nuevoMes);
-
-      // Reiniciar saldos (mantener préstamos)
-      setBancos(prev => ({
-        ...Object.fromEntries(BANCOS.map(banco => [banco, banco === 'Préstamos' ? prev['Préstamos'] : 0])) as SaldosBancos
-      }));
-      
-      setMovimientos([]);
-
-      // Recargar datos
-      await Promise.all([
-        cargarSaldoPrestamos(),
-        cargarHistorial(),
-        cargarPagos()
-      ]);
-
-      toast.success(`Mes ${infoMesActivo.nombreCompleto} cerrado correctamente. Ahora activo: ${infoMesActivo.proximoNombre}`);
-    } catch (error) {
-      console.error('Error al cerrar mes:', error);
-      toast.error('Error al cerrar el mes');
-      throw error;
+      // 3. Los pagos SIN PAGAR se quedan automáticamente (no se tocan)
     }
-  }, [mesActivoActual, movimientos, bancos, infoMesActivo, cargarSaldoPrestamos, cargarHistorial, cargarPagos]);
+
+    // Cambiar al siguiente mes
+    const nuevoMes = infoMesActivo.proximoFormato;
+    setMesActivoActual(nuevoMes);
+    localStorage.setItem('mesActivoActual', nuevoMes);
+
+    // Reiniciar saldos (mantener préstamos)
+    setBancos(prev => ({
+      ...Object.fromEntries(BANCOS.map(banco => [banco, banco === 'Préstamos' ? prev['Préstamos'] : 0])) as SaldosBancos
+    }));
+    
+    setMovimientos([]);
+
+    // Recargar datos
+    await Promise.all([
+      cargarSaldoPrestamos(),
+      cargarHistorial(),
+      cargarPagos()
+    ]);
+
+    toast.success(`Mes ${infoMesActivo.nombreCompleto} cerrado correctamente. Ahora activo: ${infoMesActivo.proximoNombre}`);
+  } catch (error) {
+    console.error('Error al cerrar mes:', error);
+    toast.error('Error al cerrar el mes');
+    throw error;
+  }
+}, [mesActivoActual, movimientos, bancos, infoMesActivo, cargarSaldoPrestamos, cargarHistorial, cargarPagos]);
 
   const totales = {
     ingresos: movimientos.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + m.valor, 0),
@@ -755,6 +916,7 @@ export function useGastos() {
     eliminarPrestamo,
     navegarMes,
     agregarPagoPendiente,
+    editarPagoPendiente,
     completarPago,
     eliminarPagoPendiente,
     cambiarMesActivo,
