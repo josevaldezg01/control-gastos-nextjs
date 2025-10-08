@@ -105,6 +105,7 @@ export const CATEGORIAS_PAGOS_PENDIENTES = [
   'Vivienda',
   'Tarjetas de crédito',
   'Impuestos',
+  'Ahorros',
   'Taliana',
   'Otros'
 ];
