@@ -94,15 +94,15 @@ const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
       };
 
       movimientosData?.forEach(mov => {
-        if (mov.tipo === 'ingreso' && mov.banco_destino && mov.banco_destino !== 'Préstamos') {
+        if (mov.tipo === 'ingreso' && mov.banco_destino && mov.banco_destino !== 'Préstamos' && mov.banco_destino !== 'Por recibir') {
           nuevosBancos[mov.banco_destino] = (nuevosBancos[mov.banco_destino] || 0) + mov.valor;
-        } else if (mov.tipo === 'gasto' && mov.banco_destino && mov.banco_destino !== 'Préstamos') {
+        } else if (mov.tipo === 'gasto' && mov.banco_destino && mov.banco_destino !== 'Préstamos' && mov.banco_destino !== 'Por recibir') {
           nuevosBancos[mov.banco_destino] = (nuevosBancos[mov.banco_destino] || 0) - mov.valor;
         } else if (mov.tipo === 'transferencia' && mov.banco_origen && mov.banco_destino) {
-          if (mov.banco_origen !== 'Préstamos') {
+          if (mov.banco_origen !== 'Préstamos' && mov.banco_origen !== 'Por recibir') {
             nuevosBancos[mov.banco_origen] = (nuevosBancos[mov.banco_origen] || 0) - mov.valor;
           }
-          if (mov.banco_destino !== 'Préstamos') {
+          if (mov.banco_destino !== 'Préstamos' && mov.banco_destino !== 'Por recibir') {
             nuevosBancos[mov.banco_destino] = (nuevosBancos[mov.banco_destino] || 0) + mov.valor;
           }
         }
@@ -170,6 +170,12 @@ const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
     categoria: string
   ) => {
     try {
+      // Validar que no se use "Por recibir" para ingresos normales
+      if (banco === 'Por recibir') {
+        toast.error('No puedes registrar ingresos en "Por recibir". Usa los préstamos familiares.');
+        return;
+      }
+
       // 1. ACTUALIZAR INMEDIATAMENTE (como HTML/JS)
       const fecha = new Date().toISOString();
       const nuevoMovimiento: Movimiento = {
@@ -188,7 +194,7 @@ const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
         ...prev,
         [banco]: prev[banco] + valor
       }));
-      
+
       setMovimientos(prev => [nuevoMovimiento, ...prev]);
       setRefreshKey(prev => prev + 1);
 
@@ -330,25 +336,18 @@ const registrarPrestamo = useCallback(async (
   descripcion: string
 ) => {
   try {
-    // Validar saldo suficiente
-    if (valor > bancos[bancoOrigen]) {
-      toast.error(`Saldo insuficiente en ${bancoOrigen}. Tiene: ${formatoMoneda(bancos[bancoOrigen])}, Necesita: ${formatoMoneda(valor)}`);
-      return; // ← Salir sin hacer nada, no lanzar error
+    // Si es "Por recibir", NO validar saldo ni descontar de ningún banco
+    const esPorRecibir = bancoOrigen === 'Por recibir';
+
+    if (!esPorRecibir) {
+      // Validar saldo suficiente solo si NO es "Por recibir"
+      if (valor > bancos[bancoOrigen]) {
+        toast.error(`Saldo insuficiente en ${bancoOrigen}. Tiene: ${formatoMoneda(bancos[bancoOrigen])}, Necesita: ${formatoMoneda(valor)}`);
+        return; // ← Salir sin hacer nada, no lanzar error
+      }
     }
 
       const fecha = new Date().toISOString();
-
-      // 1. Actualizar estado local inmediatamente
-      const nuevoMovimiento: Movimiento = {
-        id: Date.now(),
-        tipo: 'gasto',
-        valor,
-        descripcion: `Préstamo a ${persona} - ${descripcion}`,
-        categoria: 'Préstamos',
-        banco_destino: bancoOrigen,
-        fecha,
-        mes_contable: mesActivoActual
-      };
 
       const nuevoPrestamo: PrestamoFamiliar = {
         id: Date.now(),
@@ -361,43 +360,78 @@ const registrarPrestamo = useCallback(async (
         activo: true
       };
 
-      // Actualizar estados locales
-      setBancos(prev => ({
-        ...prev,
-        [bancoOrigen]: prev[bancoOrigen] - valor,
-        'Préstamos': prev['Préstamos'] + valor
-      }));
-      
-      setMovimientos(prev => [nuevoMovimiento, ...prev]);
-      setPrestamosActivos(prev => [nuevoPrestamo, ...prev]);
-      setRefreshKey(prev => prev + 1);
+      if (esPorRecibir) {
+        // Si es "Por recibir", solo actualizar préstamos, NO crear movimiento ni descontar saldo
+        setPrestamosActivos(prev => [nuevoPrestamo, ...prev]);
+        setBancos(prev => ({
+          ...prev,
+          'Préstamos': prev['Préstamos'] + valor
+        }));
+        setRefreshKey(prev => prev + 1);
 
-      // 2. Guardar en Supabase en segundo plano
-      await dbHelpers.insertPrestamo({
-        persona,
-        valor,
-        valor_pendiente: valor,
-        descripcion,
-        banco_origen: bancoOrigen,
-        fecha_prestamo: fecha,
-        activo: true
-      });
+        // Guardar solo el préstamo en Supabase (NO el movimiento)
+        await dbHelpers.insertPrestamo({
+          persona,
+          valor,
+          valor_pendiente: valor,
+          descripcion,
+          banco_origen: bancoOrigen,
+          fecha_prestamo: fecha,
+          activo: true
+        });
 
-      await dbHelpers.insertMovimiento({
-        tipo: 'gasto',
-        valor,
-        descripcion: `Préstamo a ${persona} - ${descripcion}`,
-        categoria: 'Préstamos',
-        banco_destino: bancoOrigen,
-        fecha,
-        mes_contable: mesActivoActual
-      });
+        toast.success(`Préstamo de ${persona} registrado (por recibir)`);
+        await cargarPrestamos();
 
-      toast.success(`Préstamo de ${persona} registrado correctamente`);
-      
-      // 3. Recargar solo préstamos para obtener ID real de Supabase
-      await cargarPrestamos();
-      
+      } else {
+        // Si es un banco real, hacer el flujo normal (descontar saldo y crear movimiento)
+        const nuevoMovimiento: Movimiento = {
+          id: Date.now(),
+          tipo: 'gasto',
+          valor,
+          descripcion: `Préstamo a ${persona} - ${descripcion}`,
+          categoria: 'Préstamos',
+          banco_destino: bancoOrigen,
+          fecha,
+          mes_contable: mesActivoActual
+        };
+
+        // Actualizar estados locales
+        setBancos(prev => ({
+          ...prev,
+          [bancoOrigen]: prev[bancoOrigen] - valor,
+          'Préstamos': prev['Préstamos'] + valor
+        }));
+
+        setMovimientos(prev => [nuevoMovimiento, ...prev]);
+        setPrestamosActivos(prev => [nuevoPrestamo, ...prev]);
+        setRefreshKey(prev => prev + 1);
+
+        // Guardar en Supabase
+        await dbHelpers.insertPrestamo({
+          persona,
+          valor,
+          valor_pendiente: valor,
+          descripcion,
+          banco_origen: bancoOrigen,
+          fecha_prestamo: fecha,
+          activo: true
+        });
+
+        await dbHelpers.insertMovimiento({
+          tipo: 'gasto',
+          valor,
+          descripcion: `Préstamo a ${persona} - ${descripcion}`,
+          categoria: 'Préstamos',
+          banco_destino: bancoOrigen,
+          fecha,
+          mes_contable: mesActivoActual
+        });
+
+        toast.success(`Préstamo de ${persona} registrado correctamente`);
+        await cargarPrestamos();
+      }
+
     } catch (error) {
       console.error('Error al registrar préstamo:', error);
       toast.error(error instanceof Error ? error.message : 'Error al registrar el préstamo');

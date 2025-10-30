@@ -9,7 +9,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Card, Input, Select, Button } from '@/components/ui';
-import { BANCOS, CATEGORIAS_INGRESO, CATEGORIAS_GASTO, type Banco } from '@/lib/types';
+import { BANCOS, BANCO_POR_RECIBIR, CATEGORIAS_INGRESO, CATEGORIAS_GASTO, type Banco } from '@/lib/types';
 
 interface RegistrarMovimientoProps {
   registrarIngreso: (banco: Banco, valor: number, descripcion: string, categoria: string) => Promise<void>;
@@ -68,6 +68,12 @@ export const RegistrarMovimiento: React.FC<RegistrarMovimientoProps> = ({
   }));
 
   const bancosIngreso = BANCOS.map(banco => ({
+    value: banco,
+    label: banco
+  }));
+
+  // Opciones para préstamos familiares: incluye bancos normales + "Por recibir"
+  const bancosPrestamo = [...BANCOS.filter(b => b !== 'Préstamos'), BANCO_POR_RECIBIR].map(banco => ({
     value: banco,
     label: banco
   }));
@@ -366,7 +372,7 @@ export const RegistrarMovimiento: React.FC<RegistrarMovimientoProps> = ({
           <form onSubmit={handlePrestamo} className="space-y-4">
             <Select
               label="Banco Origen"
-              options={bancosOptions}
+              options={bancosPrestamo}
               placeholder="-- Selecciona el banco --"
               value={prestamoForm.banco}
               onChange={(e) => setPrestamoForm(prev => ({ ...prev, banco: e.target.value }))}

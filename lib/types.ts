@@ -1,5 +1,5 @@
 // lib/types.ts
-export type Banco = 'Banco de Bogotá' | 'Nequi' | 'Daviplata' | 'Colpatria' | 'Bolsillo' | 'Efectivo' | 'Préstamos';
+export type Banco = 'Banco de Bogotá' | 'Nequi' | 'Daviplata' | 'Colpatria' | 'Bolsillo' | 'Efectivo' | 'Préstamos' | 'Por recibir';
 
 export type TipoMovimiento = 'ingreso' | 'gasto' | 'transferencia';
 
@@ -60,13 +60,16 @@ export interface SaldosBancos {
 
 export const BANCOS: Banco[] = [
   'Banco de Bogotá',
-  'Nequi', 
+  'Nequi',
   'Daviplata',
   'Colpatria',
   'Bolsillo',
   'Efectivo',
   'Préstamos'
 ];
+
+// Banco ficticio solo para préstamos familiares
+export const BANCO_POR_RECIBIR: Banco = 'Por recibir';
 
 export const CATEGORIAS_INGRESO = [
   'Salario',
