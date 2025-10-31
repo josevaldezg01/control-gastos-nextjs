@@ -67,13 +67,14 @@ const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
     }
   }, []);
 
-  const cargarMovimientos = useCallback(async () => {
+  const cargarMovimientos = useCallback(async (mesEspecifico?: string) => {
     try {
       setLoading(true);
 
-      console.log('📅 Cargando movimientos del mes:', mesActivoActual);
+      const mesACargar = mesEspecifico || mesActivoActual;
+      console.log('📅 Cargando movimientos del mes:', mesACargar);
 
-      const movimientosData = await dbHelpers.getMovimientos(mesActivoActual);
+      const movimientosData = await dbHelpers.getMovimientos(mesACargar);
       
       console.log('📦 Movimientos cargados:', movimientosData?.length || 0);
       console.log('📋 Primeros 3 movimientos:', movimientosData?.slice(0, 3));
@@ -778,7 +779,8 @@ const cambiarMesActivo = useCallback(async () => {
     const nuevoMes = infoMesActivo.proximoFormato;
     setMesActivoActual(nuevoMes);
     localStorage.setItem('mesActivoActual', nuevoMes);
-    await cargarMovimientos();
+    // Pasar el nuevoMes directamente para evitar problemas de sincronización de estado
+    await cargarMovimientos(nuevoMes);
     toast.success(`Mes activo cambiado a ${infoMesActivo.proximoNombre}`);
   } catch (error) {
     console.error('Error al cambiar mes activo:', error);
@@ -790,7 +792,8 @@ const navegarMes = useCallback(async (nuevoMes: string) => {
   try {
     setMesActivoActual(nuevoMes);
     localStorage.setItem('mesActivoActual', nuevoMes);
-    await cargarMovimientos();
+    // Pasar el nuevoMes directamente para evitar problemas de sincronización de estado
+    await cargarMovimientos(nuevoMes);
     toast.success(`Cambiado a ${obtenerInfoMesActivo(nuevoMes).nombreCompleto}`);
   } catch (error) {
     console.error('Error al cambiar mes:', error);
