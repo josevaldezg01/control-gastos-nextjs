@@ -831,14 +831,12 @@ const cerrarMes = useCallback(async () => {
     // Eliminar movimientos del mes cerrado
     await dbHelpers.deleteMovimientosByMes(mesActivoActual);
 
-    // ✅ NUEVA LÓGICA: Gestión de pagos pendientes al cerrar mes
+    // ✅ LÓGICA: Gestión de pagos pendientes al cerrar mes
     const pagosActuales = await dbHelpers.getPagosPendientes();
-    
+
     if (pagosActuales && pagosActuales.length > 0) {
-      // 1. Crear nuevos pagos para el siguiente mes basados en los COMPLETADOS
-      const pagosCompletados = pagosActuales.filter(p => p.completado);
-      
-      for (const pago of pagosCompletados) {
+      // Regenerar TODOS los pagos (completados y no completados) para el nuevo mes
+      for (const pago of pagosActuales) {
         // Calcular nueva fecha de vencimiento (mismo día del próximo mes)
         let nuevaFechaVencimiento = null;
         if (pago.fecha_vencimiento) {
@@ -848,7 +846,7 @@ const cerrarMes = useCallback(async () => {
           nuevaFechaVencimiento = new Date(anioProx, mesProx - 1, diaDelMes).toISOString();
         }
 
-        // Crear nuevo pago para el siguiente mes
+        // Crear nuevo pago para el siguiente mes (siempre pendiente)
         await dbHelpers.insertPagoPendiente({
           descripcion: pago.descripcion,
           valor: pago.valor,
@@ -860,12 +858,10 @@ const cerrarMes = useCallback(async () => {
         });
       }
 
-      // 2. Eliminar SOLO los pagos COMPLETADOS
-      for (const pago of pagosCompletados) {
+      // Eliminar TODOS los pagos del mes que se está cerrando
+      for (const pago of pagosActuales) {
         await dbHelpers.deletePagoPendiente(pago.id);
       }
-
-      // 3. Los pagos SIN PAGAR se quedan automáticamente (no se tocan)
     }
 
     // Cambiar al siguiente mes
