@@ -124,7 +124,7 @@ export const NotesFlow: React.FC = () => {
 
           <div className="flex-1 text-center">
             <h1 className="text-4xl font-bold text-white drop-shadow-lg">
-              📝 Mis Notas y Tareas
+              📝 Notas y Tareas
             </h1>
             <p className="text-white/60 text-sm mt-1">by Jose Valdez</p>
           </div>
