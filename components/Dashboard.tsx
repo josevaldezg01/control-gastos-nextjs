@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  PiggyBank, 
-  TrendingUp, 
-  TrendingDown, 
+import { useRouter } from 'next/navigation';
+import {
+  PiggyBank,
+  TrendingUp,
+  TrendingDown,
   Scale,
   Calendar,
   ArrowRight,
@@ -28,6 +29,7 @@ import { PagosPendientes } from './PagosPendientes';
 import { MesesAnteriores } from './MesesAnteriores';
 
 export const Dashboard: React.FC = () => {
+  const router = useRouter();
   const {
     mesActivoActual,
     infoMesActivo,
@@ -150,7 +152,7 @@ export const Dashboard: React.FC = () => {
             
             <Button
               variant="secondary"
-              onClick={() => window.open('/notesflow.html', '_blank')}
+              onClick={() => router.push('/notesflow')}
               className="bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300"
               icon={<FileText className="w-4 h-4" />}
             >

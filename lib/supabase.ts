@@ -149,7 +149,96 @@ export const dbHelpers = {
       .from('movimientos')
       .delete()
       .eq('mes_contable', mesContable);
-    
+
+    if (error) throw error;
+  }
+};
+
+// NotesFlow helpers
+export const notesFlowHelpers = {
+  // Sticky Notes
+  async getNotes() {
+    const { data, error } = await supabase
+      .from('sticky_notes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addNote(content: string, color: string) {
+    const { data, error } = await supabase
+      .from('sticky_notes')
+      .insert([{ content, color }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateNote(id: string, content: string, color: string) {
+    const { data, error } = await supabase
+      .from('sticky_notes')
+      .update({ content, color })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteNote(id: string) {
+    const { error } = await supabase
+      .from('sticky_notes')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // Tasks
+  async getTasks() {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addTask(content: string) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([{ content, completed: false }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateTask(id: string, updates: { completed?: boolean; content?: string }) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteTask(id: string) {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
     if (error) throw error;
   }
 };
