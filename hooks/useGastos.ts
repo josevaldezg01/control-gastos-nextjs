@@ -388,11 +388,12 @@ const registrarPrestamo = useCallback(async (
         // Si es un banco real, hacer el flujo normal (descontar saldo y crear movimiento)
         const nuevoMovimiento: Movimiento = {
           id: Date.now(),
-          tipo: 'gasto',
+          tipo: 'transferencia',
           valor,
           descripcion: `Préstamo a ${persona} - ${descripcion}`,
           categoria: 'Préstamos',
-          banco_destino: bancoOrigen,
+          banco_origen: bancoOrigen,
+          banco_destino: 'Por recibir',
           fecha,
           mes_contable: mesActivoActual
         };
@@ -420,11 +421,12 @@ const registrarPrestamo = useCallback(async (
         });
 
         await dbHelpers.insertMovimiento({
-          tipo: 'gasto',
+          tipo: 'transferencia',
           valor,
           descripcion: `Préstamo a ${persona} - ${descripcion}`,
           categoria: 'Préstamos',
-          banco_destino: bancoOrigen,
+          banco_origen: bancoOrigen,
+          banco_destino: 'Por recibir',
           fecha,
           mes_contable: mesActivoActual
         });
@@ -456,10 +458,11 @@ const registrarPrestamo = useCallback(async (
       // 1. Actualizar estados locales inmediatamente
       const nuevoMovimiento: Movimiento = {
         id: Date.now(),
-        tipo: 'ingreso',
+        tipo: 'transferencia',
         valor: valorAbono,
         descripcion: `Abono préstamo de ${prestamo?.persona} (${nuevoValorPendiente > 0 ? `${nuevoValorPendiente} pendiente` : 'completamente pagado'})`,
         categoria: 'Reembolso préstamos',
+        banco_origen: 'Por recibir',
         banco_destino: bancoDestino,
         fecha,
         mes_contable: mesActivoActual
@@ -492,10 +495,11 @@ const registrarPrestamo = useCallback(async (
       });
 
       await dbHelpers.insertMovimiento({
-        tipo: 'ingreso',
+        tipo: 'transferencia',
         valor: valorAbono,
         descripcion: `Abono préstamo de ${prestamo?.persona} (${nuevoValorPendiente > 0 ? `${nuevoValorPendiente} pendiente` : 'completamente pagado'})`,
         categoria: 'Reembolso préstamos',
+        banco_origen: 'Por recibir',
         banco_destino: bancoDestino,
         fecha,
         mes_contable: mesActivoActual
@@ -894,7 +898,11 @@ const cerrarMes = useCallback(async () => {
   const totales = {
     ingresos: movimientos.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + m.valor, 0),
     gastos: movimientos.filter(m => m.tipo === 'gasto').reduce((sum, m) => sum + m.valor, 0),
-    get balance() { return this.ingresos - this.gastos; },
+    prestamos: movimientos.filter(m => m.tipo === 'transferencia' && m.categoria === 'Préstamos').reduce((sum, m) => sum + m.valor, 0),
+    reembolsos: movimientos.filter(m => m.tipo === 'transferencia' && m.categoria === 'Reembolso préstamos').reduce((sum, m) => sum + m.valor, 0),
+    get balance() {
+      return this.ingresos - this.gastos - this.prestamos + this.reembolsos;
+    },
     totalBancos: Object.entries(bancos)
       .filter(([banco]) => banco !== 'Préstamos')
       .reduce((sum, [, valor]) => sum + valor, 0),

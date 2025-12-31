@@ -105,6 +105,14 @@ export const FiltroMovimientos: React.FC<FiltroMovimientosProps> = ({ movimiento
       case 'gasto':
         return `- ${formatoMoneda(mov.valor)} en ${mov.banco_destino} - ${mov.descripcion}`;
       case 'transferencia':
+        // Ocultar "de Por recibir" en reembolsos de préstamos
+        if (mov.banco_origen === 'Por recibir' && mov.categoria === 'Reembolso préstamos') {
+          return `↔ ${formatoMoneda(mov.valor)} a ${mov.banco_destino} - ${mov.descripcion}`;
+        }
+        // Ocultar "a Por recibir" en préstamos
+        if (mov.banco_destino === 'Por recibir' && mov.categoria === 'Préstamos') {
+          return `↔ ${formatoMoneda(mov.valor)} de ${mov.banco_origen} - ${mov.descripcion}`;
+        }
         return `↔ ${formatoMoneda(mov.valor)} de ${mov.banco_origen} a ${mov.banco_destino} - ${mov.descripcion}`;
       default:
         return mov.descripcion;
