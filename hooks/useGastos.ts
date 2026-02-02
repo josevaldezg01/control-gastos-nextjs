@@ -16,18 +16,28 @@ import { BANCOS } from '@/lib/types';
 
 export function useGastos() {
 const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
-  // Verificar que estamos en el navegador
-  if (typeof window !== 'undefined') {
-    const mesGuardado = localStorage.getItem('mesActivoActual');
-    if (mesGuardado) return mesGuardado;
-  }
-  
-  // Calcular mes actual (SIEMPRE se ejecuta como fallback)
+  // Calcular mes actual como fallback inicial
   const hoy = new Date();
   const año = hoy.getFullYear();
   const mes = String(hoy.getMonth() + 1).padStart(2, '0');
   return `${año}-${mes}`;
 });
+
+// Cargar mes activo desde la base de datos al iniciar
+useEffect(() => {
+  const cargarMesActivoGlobal = async () => {
+    try {
+      const mesGlobal = await dbHelpers.getMesActivoGlobal();
+      if (mesGlobal && mesGlobal !== mesActivoActual) {
+        setMesActivoActual(mesGlobal);
+      }
+    } catch (error) {
+      console.error('Error cargando mes activo global:', error);
+    }
+  };
+
+  cargarMesActivoGlobal();
+}, []);
   const [bancos, setBancos] = useState<SaldosBancos>({
     'Banco de Bogotá': 0,
     'Nequi': 0,
@@ -143,15 +153,16 @@ const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
     }
   }, []);
 
-  const cargarPagos = useCallback(async () => {
+  const cargarPagos = useCallback(async (mesEspecifico?: string) => {
     try {
-      const pagos = await dbHelpers.getPagosPendientes();
+      const mesACargar = mesEspecifico || mesActivoActual;
+      const pagos = await dbHelpers.getPagosPendientes(mesACargar);
       setPagosPendientes(pagos || []);
     } catch (error) {
       console.error('Error al cargar pagos pendientes:', error);
       toast.error('Error al cargar los pagos pendientes');
     }
-  }, []);
+  }, [mesActivoActual]);
 
   const cargarHistorial = useCallback(async () => {
     try {
@@ -782,28 +793,34 @@ const cambiarMesActivo = useCallback(async () => {
   try {
     const nuevoMes = infoMesActivo.proximoFormato;
     setMesActivoActual(nuevoMes);
-    localStorage.setItem('mesActivoActual', nuevoMes);
+    // NO actualizar la BD aquí - solo estamos navegando al mes siguiente
     // Pasar el nuevoMes directamente para evitar problemas de sincronización de estado
-    await cargarMovimientos(nuevoMes);
-    toast.success(`Mes activo cambiado a ${infoMesActivo.proximoNombre}`);
+    await Promise.all([
+      cargarMovimientos(nuevoMes),
+      cargarPagos(nuevoMes)
+    ]);
+    toast.success(`Visualizando ${infoMesActivo.proximoNombre}`);
   } catch (error) {
     console.error('Error al cambiar mes activo:', error);
     toast.error('Error al cambiar el mes activo');
   }
-}, [infoMesActivo, cargarMovimientos]);
+}, [infoMesActivo, cargarMovimientos, cargarPagos]);
 
 const navegarMes = useCallback(async (nuevoMes: string) => {
   try {
     setMesActivoActual(nuevoMes);
-    localStorage.setItem('mesActivoActual', nuevoMes);
+    // NO actualizar la BD aquí - solo estamos navegando/consultando
     // Pasar el nuevoMes directamente para evitar problemas de sincronización de estado
-    await cargarMovimientos(nuevoMes);
-    toast.success(`Cambiado a ${obtenerInfoMesActivo(nuevoMes).nombreCompleto}`);
+    await Promise.all([
+      cargarMovimientos(nuevoMes),
+      cargarPagos(nuevoMes)
+    ]);
+    toast.success(`Visualizando ${obtenerInfoMesActivo(nuevoMes).nombreCompleto}`);
   } catch (error) {
     console.error('Error al cambiar mes:', error);
     toast.error('Error al cambiar el mes');
   }
-}, [cargarMovimientos]);
+}, [cargarMovimientos, cargarPagos]);
 
 const cerrarMes = useCallback(async () => {
   try {
@@ -836,7 +853,10 @@ const cerrarMes = useCallback(async () => {
     await dbHelpers.deleteMovimientosByMes(mesActivoActual);
 
     // ✅ LÓGICA: Gestión de pagos pendientes al cerrar mes
-    const pagosActuales = await dbHelpers.getPagosPendientes();
+    // Obtener TODOS los pagos del mes que se está cerrando (completados y pendientes)
+    const pagosActuales = await dbHelpers.getPagosPendientes(mesActivoActual);
+
+    console.log(`📋 Cerrando mes ${mesActivoActual}: ${pagosActuales?.length || 0} pagos encontrados para regenerar`);
 
     if (pagosActuales && pagosActuales.length > 0) {
       // Regenerar TODOS los pagos (completados y no completados) para el nuevo mes
@@ -871,7 +891,7 @@ const cerrarMes = useCallback(async () => {
     // Cambiar al siguiente mes
     const nuevoMes = infoMesActivo.proximoFormato;
     setMesActivoActual(nuevoMes);
-    localStorage.setItem('mesActivoActual', nuevoMes);
+    await dbHelpers.setMesActivoGlobal(nuevoMes);
 
     // Reiniciar saldos (mantener préstamos)
     setBancos(prev => ({
@@ -880,11 +900,11 @@ const cerrarMes = useCallback(async () => {
     
     setMovimientos([]);
 
-    // Recargar datos
+    // Recargar datos (pasar nuevoMes explícitamente porque el estado aún no se actualizó)
     await Promise.all([
       cargarSaldoPrestamos(),
       cargarHistorial(),
-      cargarPagos()
+      cargarPagos(nuevoMes)
     ]);
 
     toast.success(`Mes ${infoMesActivo.nombreCompleto} cerrado correctamente. Ahora activo: ${infoMesActivo.proximoNombre}`);
@@ -896,25 +916,47 @@ const cerrarMes = useCallback(async () => {
 }, [mesActivoActual, movimientos, bancos, infoMesActivo, cargarSaldoPrestamos, cargarHistorial, cargarPagos]);
 
   const totales = {
-    ingresos: movimientos.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + m.valor, 0),
-    gastos: movimientos.filter(m => m.tipo === 'gasto').reduce((sum, m) => sum + m.valor, 0),
-    prestamos: movimientos.filter(m => m.tipo === 'transferencia' && m.categoria === 'Préstamos').reduce((sum, m) => sum + m.valor, 0),
-    reembolsos: movimientos.filter(m => m.tipo === 'transferencia' && m.categoria === 'Reembolso préstamos').reduce((sum, m) => sum + m.valor, 0),
+    // Excluir movimientos de streaming (identificados por categoría)
+    ingresos: movimientos
+      .filter(m =>
+        m.tipo === 'ingreso' &&
+        !m.categoria?.startsWith('Venta de cuentas')
+      )
+      .reduce((sum, m) => sum + m.valor, 0),
+
+    gastos: movimientos
+      .filter(m =>
+        m.tipo === 'gasto' &&
+        !m.categoria?.startsWith('Pago de cuentas')
+      )
+      .reduce((sum, m) => sum + m.valor, 0),
+
+    prestamos: movimientos
+      .filter(m => m.tipo === 'transferencia' && m.categoria === 'Préstamos')
+      .reduce((sum, m) => sum + m.valor, 0),
+
+    reembolsos: movimientos
+      .filter(m => m.tipo === 'transferencia' && m.categoria === 'Reembolso préstamos')
+      .reduce((sum, m) => sum + m.valor, 0),
+
     get balance() {
       return this.ingresos - this.gastos - this.prestamos + this.reembolsos;
     },
+
     totalBancos: Object.entries(bancos)
       .filter(([banco]) => banco !== 'Préstamos')
       .reduce((sum, [, valor]) => sum + valor, 0),
+
     totalPrestado: prestamosActivos.reduce((sum, p) => sum + (p.valor_pendiente || 0), 0)
   };
 
-  useEffect(() => {
-    const mesGuardado = localStorage.getItem('mesActivoActual');
-    if (mesGuardado) {
-      setMesActivoActual(mesGuardado);
-    }
-  }, []);
+  // Este useEffect ya no es necesario porque cargamos desde la BD al inicio
+  // useEffect(() => {
+  //   const mesGuardado = localStorage.getItem('mesActivoActual');
+  //   if (mesGuardado) {
+  //     setMesActivoActual(mesGuardado);
+  //   }
+  // }, []);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -938,7 +980,8 @@ const cerrarMes = useCallback(async () => {
   }, [cargarMovimientos, cargarPrestamos, cargarPagos, cargarHistorial]);
 
   return {
-    mesActivoActual,
+    mesActivo: mesActivoActual,
+    mesActivoActual, // Mantener por compatibilidad temporal
     infoMesActivo,
     bancos,
     movimientos,
