@@ -236,7 +236,7 @@ export const NotesFlow: React.FC = () => {
               onChange={(e) => setTaskInput(e.target.value)}
               onKeyPress={handleTaskKeyPress}
               placeholder="Escribe una nueva tarea..."
-              className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-600 transition-all"
+              className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-600 transition-all text-gray-800 placeholder-gray-400"
             />
             <Button
               onClick={handleAddTask}
