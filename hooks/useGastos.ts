@@ -45,6 +45,7 @@ useEffect(() => {
     'Colpatria': 0,
     'Bolsillo': 0,
     'Efectivo': 0,
+    'Subsidio Comfandi': 0,
     'Préstamos': 0
   });
 
@@ -101,6 +102,7 @@ useEffect(() => {
         'Colpatria': 0,
         'Bolsillo': 0,
         'Efectivo': 0,
+        'Subsidio Comfandi': 0,
         'Préstamos': saldoPrestamos
       };
 

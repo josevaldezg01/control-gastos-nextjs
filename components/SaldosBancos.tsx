@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { 
-  Building2, 
-  Smartphone, 
-  CreditCard, 
-  Coins, 
+import {
+  Building2,
+  Smartphone,
+  CreditCard,
+  Coins,
   DollarSign,
   Handshake,
-  Wallet
+  Wallet,
+  Gift
 } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { formatoMoneda } from '@/lib/utils';
@@ -75,6 +76,15 @@ export const SaldosBancos: React.FC<SaldosBancosComponentProps> = ({ bancos }) =
       textColor: 'text-gray-700'
     },
     {
+      nombre: 'Subsidio Comfandi',
+      key: 'Subsidio Comfandi',
+      icon: Gift,
+      color: 'teal',
+      bgColor: 'bg-teal-100',
+      iconColor: 'text-teal-600',
+      textColor: 'text-teal-700'
+    },
+    {
       nombre: 'Préstamos',
       key: 'Préstamos',
       icon: Handshake,
@@ -107,7 +117,7 @@ export const SaldosBancos: React.FC<SaldosBancosComponentProps> = ({ bancos }) =
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         {bancosConfig.map((banco) => {
           const saldo = bancos[banco.key] || 0;
           const IconComponent = banco.icon;
@@ -190,6 +200,12 @@ export const SaldosBancos: React.FC<SaldosBancosComponentProps> = ({ bancos }) =
               <p className="text-sm text-gray-600">Físico</p>
               <p className="text-lg font-bold text-gray-600">
                 {formatoMoneda(bancos['Efectivo'] || 0)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600">Subsidio</p>
+              <p className="text-lg font-bold text-teal-600">
+                {formatoMoneda(bancos['Subsidio Comfandi'] || 0)}
               </p>
             </div>
           </div>

@@ -1,5 +1,5 @@
 // lib/types.ts
-export type Banco = 'Banco de Bogotá' | 'Nequi' | 'Daviplata' | 'Colpatria' | 'Bolsillo' | 'Efectivo' | 'Préstamos' | 'Por recibir';
+export type Banco = 'Banco de Bogotá' | 'Nequi' | 'Daviplata' | 'Colpatria' | 'Bolsillo' | 'Efectivo' | 'Subsidio Comfandi' | 'Préstamos' | 'Por recibir';
 
 export type TipoMovimiento = 'ingreso' | 'gasto' | 'transferencia';
 
@@ -65,6 +65,7 @@ export const BANCOS: Banco[] = [
   'Colpatria',
   'Bolsillo',
   'Efectivo',
+  'Subsidio Comfandi',
   'Préstamos'
 ];
 
