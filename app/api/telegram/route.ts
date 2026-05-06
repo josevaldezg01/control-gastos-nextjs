@@ -192,15 +192,18 @@ function parseMessage(text: string): Record<string, unknown> | null {
 
   if (remaining.length === 0) return null;
 
+  // Buscar el banco en cualquier posición (no solo al final)
   let banco: string | null = null;
-  let descTokens: string[];
-
-  if (remaining.length >= 2) {
-    banco = findBanco(remaining[remaining.length - 1]);
-    descTokens = banco ? remaining.slice(0, -1) : remaining;
-  } else {
-    descTokens = remaining;
+  let bancoIdx = -1;
+  for (let i = 0; i < remaining.length; i++) {
+    const found = findBanco(remaining[i]);
+    if (found) { banco = found; bancoIdx = i; break; }
   }
+
+  const descTokens = remaining.filter((_, i) => i !== bancoIdx);
+
+  // Si no se detectó banco, usar Efectivo como fallback
+  if (!banco) banco = 'Efectivo';
 
   const descripcion = descTokens.map((t, i) => i === 0 ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t.toLowerCase()).join(' ');
   const now = new Date();
@@ -210,7 +213,6 @@ function parseMessage(text: string): Record<string, unknown> | null {
     valor: amount,
     descripcion,
     fecha: now.toISOString(),
-    banco_origen: null,
     banco_destino: banco,
     categoria: inferCategory(descripcion, tipo),
     mes_contable: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
