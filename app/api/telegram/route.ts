@@ -15,7 +15,9 @@ const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 // ─── Tablas de parsing ────────────────────────────────────────────────────────
 
 const BANCO_MAP: Record<string, string> = {
-  nequi: 'Nequi', equin: 'Nequi', nequy: 'Nequi', nequis: 'Nequi', neki: 'Nequi', nekki: 'Nequi',
+  nequi: 'Nequi', equin: 'Nequi', nequy: 'Nequi', nequis: 'Nequi',
+  neki: 'Nequi', nekki: 'Nequi', nekking: 'Nequi', neking: 'Nequi',
+  nequin: 'Nequi', nequing: 'Nequi', neky: 'Nequi', necki: 'Nequi',
   daviplata: 'Daviplata', davi: 'Daviplata', daviplatah: 'Daviplata',
   efectivo: 'Efectivo', efecto: 'Efectivo',
   bogota: 'Banco de Bogotá', bdb: 'Banco de Bogotá',
@@ -27,7 +29,7 @@ const BANCO_MAP: Record<string, string> = {
 };
 
 const BANCO_FINGERPRINTS: [string, string[]][] = [
-  ['Nequi',             ['nequ', 'equi']],
+  ['Nequi',             ['nequ', 'equi', 'nekk', 'nek']],
   ['Daviplata',         ['davi']],
   ['Bancolombia',       ['olom', 'banc']],
   ['Colpatria',         ['colp']],
@@ -41,6 +43,7 @@ const FILLER_WORDS = new Set([
   'en', 'de', 'por', 'con', 'para', 'a', 'al', 'del',
   'el', 'la', 'los', 'las', 'un', 'una', 'y', 'via',
   'pesos', 'peso',
+  'the', 'and', 'of',
   'gaste', 'compre', 'pague', 'gasto', 'pago', 'use', 'utilize', 'saque',
   'banco',
 ]);
