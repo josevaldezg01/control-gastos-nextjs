@@ -248,7 +248,7 @@ async function processText(chatId: number, text: string) {
   const { error } = await supabase.from('movimientos').insert(movimiento);
   if (error) {
     console.error('Supabase error:', error);
-    await sendMessage(chatId, '❌ Error al guardar el movimiento. Intenta de nuevo.');
+    await sendMessage(chatId, `❌ Error Supabase: ${error.message} | code: ${error.code}`);
     return;
   }
 
