@@ -386,7 +386,28 @@ export async function POST(req: NextRequest) {
           );
         }
       } else {
-        await processText(chatId, message.text);
+        const norm = normalize(cmd);
+        const esBorrar = ['borrar', 'borra', 'eliminar', 'elimina', 'borrar ese',
+          'eliminar ese', 'quitar', 'quita', 'undo', 'deshacer', 'borra ese',
+          'borrar ultimo', 'eliminar ultimo', 'borra el ultimo', 'elimina el ultimo',
+        ].some(kw => norm.includes(kw));
+
+        const esCorregir = ['corregir', 'correguir', 'corregir ese', 'correccion',
+          'corrección', 'corrige', 'corregir ultimo',
+        ].some(kw => norm.includes(kw));
+
+        if (esBorrar || esCorregir) {
+          const last = await getLastMovimiento();
+          if (!last) { await sendMessage(chatId, '❌ No encontré movimientos recientes.'); }
+          else {
+            await supabase.from('movimientos').delete().eq('id', last.id);
+            const emoji = last.tipo === 'ingreso' ? '📥' : '📤';
+            const msg = `🗑️ Eliminado: ${emoji} ${formatMoney(last.valor)} · ${last.descripcion} · ${last.banco_destino}`;
+            await sendMessage(chatId, esCorregir ? `${msg}\n\nEnvía el movimiento corregido:` : msg);
+          }
+        } else {
+          await processText(chatId, message.text);
+        }
       }
     } else if (message.voice) {
       await processVoice(chatId, message.voice.file_id);
