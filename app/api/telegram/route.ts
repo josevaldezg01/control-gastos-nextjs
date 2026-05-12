@@ -393,7 +393,8 @@ export async function POST(req: NextRequest) {
         ].some(kw => norm.includes(kw));
 
         const esCorregir = ['corregir', 'correguir', 'corregir ese', 'correccion',
-          'corrección', 'corrige', 'corregir ultimo',
+          'corrección', 'corrige', 'corregir ultimo', 'modificar', 'modifica',
+          'modificar ese', 'modificar ultimo',
         ].some(kw => norm.includes(kw));
 
         if (esBorrar || esCorregir) {
