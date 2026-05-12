@@ -271,7 +271,8 @@ async function saveAndConfirm(chatId: number, movimiento: Record<string, unknown
   }
   const emoji = movimiento.tipo === 'ingreso' ? '📥' : '📤';
   const banco = (movimiento.banco_destino as string) || 'Sin banco';
-  await sendMessage(chatId, `${emoji} ${formatMoney(movimiento.valor as number)} · ${movimiento.descripcion} · ${banco}`);
+  const tipo = movimiento.tipo === 'ingreso' ? 'Ingreso' : 'Gasto';
+  await sendMessage(chatId, `${emoji} ${formatMoney(movimiento.valor as number)} · ${movimiento.descripcion} · ${banco} · ${tipo}`);
 }
 
 async function processText(chatId: number, text: string) {
