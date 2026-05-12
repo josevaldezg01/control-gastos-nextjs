@@ -260,6 +260,16 @@ async function getTelegramFileBuffer(fileId: string): Promise<ArrayBuffer> {
   return fileRes.arrayBuffer();
 }
 
+async function getLastMovimiento() {
+  const { data } = await supabase
+    .from('movimientos')
+    .select('id, tipo, valor, descripcion, banco_destino')
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .single();
+  return data;
+}
+
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 
 async function saveAndConfirm(chatId: number, movimiento: Record<string, unknown>) {
@@ -344,14 +354,37 @@ export async function POST(req: NextRequest) {
     const chatId: number = message.chat.id;
 
     if (message.text) {
-      if (message.text === '/start') {
+      const cmd = message.text.trim().toLowerCase();
+
+      if (cmd === '/start') {
         await sendMessage(chatId,
           '👋 Bot de gastos listo.\n\nEnvíame un mensaje de texto o nota de voz 🎤:\n\n' +
           '  50000 almuerzo nequi\n' +
           '  transporte 3200 efectivo\n' +
           '  ingreso 2500000 salario nequi\n' +
-          '  20 mil gasolina efectivo'
+          '  20 mil gasolina efectivo\n\n' +
+          'Comandos:\n' +
+          '  /undo → elimina el último movimiento\n' +
+          '  /corregir → elimina el último y te pide el correcto'
         );
+      } else if (cmd === '/undo') {
+        const last = await getLastMovimiento();
+        if (!last) { await sendMessage(chatId, '❌ No encontré movimientos recientes.'); }
+        else {
+          await supabase.from('movimientos').delete().eq('id', last.id);
+          const emoji = last.tipo === 'ingreso' ? '📥' : '📤';
+          await sendMessage(chatId, `🗑️ Eliminado: ${emoji} ${formatMoney(last.valor)} · ${last.descripcion} · ${last.banco_destino}`);
+        }
+      } else if (cmd === '/corregir') {
+        const last = await getLastMovimiento();
+        if (!last) { await sendMessage(chatId, '❌ No encontré movimientos recientes.'); }
+        else {
+          await supabase.from('movimientos').delete().eq('id', last.id);
+          const emoji = last.tipo === 'ingreso' ? '📥' : '📤';
+          await sendMessage(chatId,
+            `🗑️ Eliminado: ${emoji} ${formatMoney(last.valor)} · ${last.descripcion} · ${last.banco_destino}\n\nEnvía el movimiento corregido:`
+          );
+        }
       } else {
         await processText(chatId, message.text);
       }
