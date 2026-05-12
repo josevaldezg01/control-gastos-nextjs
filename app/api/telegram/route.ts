@@ -205,9 +205,6 @@ function parseMessage(text: string): Record<string, unknown> | null {
 
   const descTokens = remaining.filter((_, i) => i !== bancoIdx);
 
-  // Si no se detectó banco, usar Efectivo como fallback
-  if (!banco) banco = 'Efectivo';
-
   const descripcion = descTokens.map((t, i) => i === 0 ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t.toLowerCase()).join(' ');
   const now = new Date();
 
@@ -220,6 +217,29 @@ function parseMessage(text: string): Record<string, unknown> | null {
     categoria: inferCategory(descripcion, tipo),
     mes_contable: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
   };
+}
+
+// ─── Session (estado de conversación) ────────────────────────────────────────
+
+async function getSession(chatId: number): Promise<Record<string, unknown> | null> {
+  const { data } = await supabase
+    .from('telegram_sessions')
+    .select('pending_movimiento')
+    .eq('chat_id', chatId)
+    .single();
+  return data?.pending_movimiento ?? null;
+}
+
+async function setSession(chatId: number, movimiento: Record<string, unknown>) {
+  await supabase.from('telegram_sessions').upsert({
+    chat_id: chatId,
+    pending_movimiento: movimiento,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+async function clearSession(chatId: number) {
+  await supabase.from('telegram_sessions').delete().eq('chat_id', chatId);
 }
 
 // ─── Telegram helpers ─────────────────────────────────────────────────────────
@@ -242,7 +262,41 @@ async function getTelegramFileBuffer(fileId: string): Promise<ArrayBuffer> {
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 
+async function saveAndConfirm(chatId: number, movimiento: Record<string, unknown>) {
+  const { error } = await supabase.from('movimientos').insert(movimiento);
+  if (error) {
+    console.error('Supabase error:', error);
+    await sendMessage(chatId, `❌ Error Supabase: ${error.message} | code: ${error.code}`);
+    return;
+  }
+  const emoji = movimiento.tipo === 'ingreso' ? '📥' : '📤';
+  const banco = (movimiento.banco_destino as string) || 'Sin banco';
+  await sendMessage(chatId, `${emoji} ${formatMoney(movimiento.valor as number)} · ${movimiento.descripcion} · ${banco}`);
+}
+
 async function processText(chatId: number, text: string) {
+  const pending = await getSession(chatId);
+
+  if (pending) {
+    // Si el usuario envía un nuevo gasto (tiene número) cancelamos la pregunta pendiente
+    const isNewExpense = /\d{3,}/.test(text);
+    if (!isNewExpense) {
+      // Tratar el mensaje como respuesta a "¿A qué banco?"
+      const banco = findBanco(text.trim());
+      if (banco) {
+        await clearSession(chatId);
+        await saveAndConfirm(chatId, { ...pending, banco_destino: banco });
+      } else {
+        await sendMessage(chatId,
+          '❓ No reconocí ese banco. Ejemplos: nequi, efectivo, daviplata, bancolombia\n\nO envía un nuevo gasto para cancelar.'
+        );
+      }
+      return;
+    }
+    // Si era un nuevo gasto, cancelamos la sesión y continuamos normal
+    await clearSession(chatId);
+  }
+
   const movimiento = parseMessage(text);
 
   if (!movimiento) {
@@ -250,16 +304,16 @@ async function processText(chatId: number, text: string) {
     return;
   }
 
-  const { error } = await supabase.from('movimientos').insert(movimiento);
-  if (error) {
-    console.error('Supabase error:', error);
-    await sendMessage(chatId, `❌ Error Supabase: ${error.message} | code: ${error.code}`);
+  if (!movimiento.banco_destino) {
+    await setSession(chatId, movimiento);
+    const emoji = movimiento.tipo === 'ingreso' ? '📥' : '📤';
+    await sendMessage(chatId,
+      `${emoji} ${formatMoney(movimiento.valor as number)} · ${movimiento.descripcion}\n\n¿A qué banco?`
+    );
     return;
   }
 
-  const emoji = movimiento.tipo === 'ingreso' ? '📥' : '📤';
-  const banco = (movimiento.banco_destino as string) || 'Sin banco';
-  await sendMessage(chatId, `${emoji} ${formatMoney(movimiento.valor as number)} · ${movimiento.descripcion} · ${banco}`);
+  await saveAndConfirm(chatId, movimiento);
 }
 
 async function processVoice(chatId: number, fileId: string) {
