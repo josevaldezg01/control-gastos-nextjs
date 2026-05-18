@@ -138,7 +138,7 @@ function findBanco(token: string): string | null {
   return null;
 }
 
-function inferCategory(descripcion: string, tipo: string): string | null {
+function inferCategory(descripcion: string, tipo: string): string {
   const norm = normalize(descripcion);
   if ([...STREAMING_KEYWORDS].some(kw => norm.includes(kw))) {
     return tipo === 'ingreso' ? 'Venta de cuentas Netflix/Prime/Max' : 'Pago de cuentas Netflix/Prime/Max';
@@ -146,7 +146,7 @@ function inferCategory(descripcion: string, tipo: string): string | null {
   for (const [kw, cat] of Object.entries(CATEGORY_MAP)) {
     if (norm.includes(kw)) return cat;
   }
-  return null;
+  return tipo === 'ingreso' ? 'Otros Ingresos' : 'Otros gastos';
 }
 
 function formatMoney(value: number): string {
