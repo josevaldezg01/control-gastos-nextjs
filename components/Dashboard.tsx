@@ -150,14 +150,30 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            <Button
-              variant="secondary"
-              onClick={() => router.push('/notesflow')}
-              className="bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300"
-              icon={<FileText className="w-4 h-4" />}
-            >
-              NotesFlow
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => router.push('/streaming')}
+                className="bg-purple-500/30 backdrop-blur-sm border border-purple-300/30 text-white hover:bg-purple-500/40 transition-all duration-300"
+              >
+                🎬 Streaming
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => router.push('/notesflow')}
+                className="bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300"
+                icon={<FileText className="w-4 h-4" />}
+              >
+                NotesFlow
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => router.push('/trip')}
+                className="bg-indigo-500/40 backdrop-blur-sm border border-indigo-300/40 text-white hover:bg-indigo-500/60 transition-all duration-300"
+              >
+                🗺️ Europa
+              </Button>
+            </div>
           </div>
         </div>
       </header>
