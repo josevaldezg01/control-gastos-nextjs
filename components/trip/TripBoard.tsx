@@ -276,7 +276,7 @@ function KanbanColumna({ etapa, isFirst, isLast, onActivar, onAddTarjeta, onMove
         </div>
 
         {/* Tarjetas */}
-        <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[55vh]">
+        <div className="p-2 space-y-2">
           {etapa.tarjetas.map(t => (
             <TarjetaCard
               key={t.id}
@@ -350,8 +350,8 @@ export default function TripBoard() {
       </header>
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto">
-        <div className="flex gap-3 p-4 h-full" style={{ minWidth: 'max-content' }}>
+      <div className="overflow-x-auto pb-6">
+        <div className="flex gap-3 p-4 items-start" style={{ minWidth: 'max-content' }}>
           {etapas.map((etapa, idx) => (
             <KanbanColumna
               key={etapa.id}
