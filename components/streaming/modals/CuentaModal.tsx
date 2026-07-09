@@ -1,0 +1,175 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { CuentaStreaming } from '@/hooks/useStreaming';
+
+interface CuentaModalProps {
+  cuenta?: CuentaStreaming | null;
+  onClose: () => void;
+  onGuardar: (cuenta: any) => Promise<void>;
+}
+
+const servicios = ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'YouTube Premium'];
+
+const tiposCuentaPorServicio: Record<string, string[]> = {
+  'Netflix': ['Netflix 1 pantalla', 'Netflix 2 pantallas', 'Netflix 4 pantallas'],
+  'Prime Video': ['5 perfiles'],
+  'Disney+': ['5 perfiles'],
+  'HBO Max': ['5 perfiles'],
+  'YouTube Premium': ['Premium (1 principal + 5 vinculadas)']
+};
+
+export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) => {
+  const [servicio, setServicio] = useState(cuenta?.servicio || 'Netflix');
+  const [tipoCuenta, setTipoCuenta] = useState(cuenta?.tipo_cuenta || '');
+  const [costoMensual, setCostoMensual] = useState(cuenta?.costo_mensual?.toString() || '');
+  const [diaPago, setDiaPago] = useState(cuenta?.dia_pago?.toString() || '');
+  const [notas, setNotas] = useState(cuenta?.notas || '');
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    if (!cuenta && servicio) {
+      setTipoCuenta(tiposCuentaPorServicio[servicio][0]);
+    }
+  }, [servicio, cuenta]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!costoMensual || parseFloat(costoMensual) <= 0) {
+      alert('Por favor ingresa un costo válido');
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const datosCuenta = {
+        servicio,
+        tipo_cuenta: tipoCuenta,
+        costo_mensual: parseFloat(costoMensual),
+        dia_pago: diaPago ? parseInt(diaPago) : null,
+        notas: notas || null
+      };
+
+      await onGuardar(datosCuenta);
+      onClose();
+    } catch (error) {
+      console.error('Error guardando cuenta:', error);
+      alert('Error al guardar la cuenta');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <h3 className="text-white text-2xl font-bold mb-6">
+          {cuenta ? 'Editar Cuenta' : 'Nueva Cuenta'}
+        </h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Servicio */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Servicio *
+            </label>
+            <select
+              value={servicio}
+              onChange={(e) => setServicio(e.target.value)}
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              required
+            >
+              {servicios.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tipo de Cuenta */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Tipo de Cuenta *
+            </label>
+            <select
+              value={tipoCuenta}
+              onChange={(e) => setTipoCuenta(e.target.value)}
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              required
+            >
+              {tiposCuentaPorServicio[servicio].map((tipo) => (
+                <option key={tipo} value={tipo}>{tipo}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Costo Mensual */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Costo Mensual *
+            </label>
+            <input
+              type="number"
+              value={costoMensual}
+              onChange={(e) => setCostoMensual(e.target.value)}
+              placeholder="20000"
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              required
+              min="0"
+              step="100"
+            />
+          </div>
+
+          {/* Día de Pago */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Día de Pago (1-31)
+            </label>
+            <input
+              type="number"
+              value={diaPago}
+              onChange={(e) => setDiaPago(e.target.value)}
+              placeholder="15"
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              min="1"
+              max="31"
+            />
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Notas
+            </label>
+            <textarea
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Información adicional..."
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg font-semibold transition-all"
+              disabled={guardando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded-lg font-semibold transition-all disabled:opacity-50"
+              disabled={guardando}
+            >
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
