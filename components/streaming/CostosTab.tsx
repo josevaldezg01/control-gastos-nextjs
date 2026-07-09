@@ -83,6 +83,11 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                         <div className="text-white/60 text-sm">
                           {cuenta.tipo_cuenta}
                         </div>
+                        {cuenta.email && (
+                          <div className="text-purple-300 text-xs font-mono mt-1">
+                            ✉️ {cuenta.email}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -130,6 +135,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
               <thead className="bg-white/10">
                 <tr>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Servicio</th>
+                  <th className="text-left text-white/80 px-4 py-3 text-sm">Cuenta (email)</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Tipo Cuenta</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Monto</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Fecha</th>
@@ -145,6 +151,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                     }`}
                   >
                     <td className="px-4 py-3 text-white">{costo.servicio}</td>
+                    <td className="px-4 py-3 text-purple-300 font-mono text-xs">{costo.cuenta?.email || '—'}</td>
                     <td className="px-4 py-3 text-white/80">{costo.tipo_cuenta}</td>
                     <td className="px-4 py-3 text-red-400 font-semibold">
                       {formatoMoneda(costo.monto)}

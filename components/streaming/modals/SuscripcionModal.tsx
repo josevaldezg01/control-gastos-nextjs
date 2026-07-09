@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useStreaming, Suscripcion } from '@/hooks/useStreaming';
 
 interface SuscripcionModalProps {
@@ -16,6 +17,7 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
   const [tipoAcceso, setTipoAcceso] = useState(suscripcion?.tipo_acceso || '');
   const [costoMensual, setCostoMensual] = useState(suscripcion?.costo_mensual?.toString() || '');
   const [proximoCobro, setProximoCobro] = useState(suscripcion?.proximo_cobro || '');
+  const [emailAcceso, setEmailAcceso] = useState(suscripcion?.email_acceso || '');
   const [notas, setNotas] = useState(suscripcion?.notas || '');
   const [guardando, setGuardando] = useState(false);
   const [espaciosDisponibles, setEspaciosDisponibles] = useState<string[]>([]);
@@ -68,8 +70,8 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
       return;
     }
 
-    if (parseFloat(costoMensual) <= 0) {
-      alert('El costo debe ser mayor a 0');
+    if (parseFloat(costoMensual) < 0) {
+      alert('El costo no puede ser negativo');
       return;
     }
 
@@ -81,6 +83,7 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
         tipo_acceso: tipoAcceso,
         costo_mensual: parseFloat(costoMensual),
         proximo_cobro: proximoCobro,
+        email_acceso: emailAcceso.trim() || null,
         notas: notas || null
       };
 
@@ -98,7 +101,7 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-white text-2xl font-bold mb-6">
@@ -122,11 +125,14 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
               disabled={!!suscripcion}
             >
               <option value={0}>Selecciona una cuenta</option>
-              {cuentasActivas.map((cuenta) => (
-                <option key={cuenta.id} value={cuenta.id}>
-                  {cuenta.servicio} - {cuenta.tipo_cuenta}
-                </option>
-              ))}
+              {cuentasActivas.map((cuenta) => {
+                const espacios = streaming.getEspaciosDisponibles(cuenta.id);
+                return (
+                  <option key={cuenta.id} value={cuenta.id}>
+                    {cuenta.servicio} - {cuenta.tipo_cuenta} — {cuenta.email || 'sin correo'} ({espacios.disponibles}/{espacios.total} libres)
+                  </option>
+                );
+              })}
             </select>
             {suscripcion && (
               <p className="text-white/40 text-xs mt-1">
@@ -165,6 +171,23 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
               )}
             </div>
           )}
+
+          {/* Email de acceso (si es distinto al de la cuenta madre) */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Email de acceso (opcional)
+            </label>
+            <input
+              type="text"
+              value={emailAcceso}
+              onChange={(e) => setEmailAcceso(e.target.value)}
+              placeholder={cuentasActivas.find(c => c.id === cuentaId)?.email || 'correo con el que entra el cliente'}
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+            />
+            <p className="text-white/40 text-xs mt-1">
+              Solo si el cliente usa un correo distinto al de la cuenta madre (ej. cuenta hija de Netflix). Déjalo vacío si usa el mismo.
+            </p>
+          </div>
 
           {/* Cliente */}
           <div>
@@ -251,6 +274,7 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

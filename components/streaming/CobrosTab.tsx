@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStreaming, Suscripcion } from '@/hooks/useStreaming';
 import { BANCOS } from '@/lib/types';
 import { CobrarModal } from './modals/CobrarModal';
@@ -12,10 +12,22 @@ interface CobrosTabProps {
 
 export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
   const [vista, setVista] = useState<'pendientes' | 'cobrados'>('pendientes');
-  const [suscripcionACobrar, setSuscripcionACobrar] = useState<Suscripcion | null>(null);
+  const [grupoACobrar, setGrupoACobrar] = useState<Suscripcion[] | null>(null);
 
   const cobrosPendientes = streaming.getSuscripcionesPendientes();
   const cobrosCobrados = streaming.pagos;
+
+  // Agrupa por cliente + próxima fecha de cobro: si todas sus pantallas
+  // vencen el mismo día, se muestran unificadas con el total a cobrar.
+  const gruposPendientes = useMemo(() => {
+    const grupos = new Map<string, Suscripcion[]>();
+    for (const s of cobrosPendientes) {
+      const key = `${s.cliente_id}-${s.proximo_cobro}`;
+      if (!grupos.has(key)) grupos.set(key, []);
+      grupos.get(key)!.push(s);
+    }
+    return Array.from(grupos.values());
+  }, [cobrosPendientes]);
 
   const formatoMoneda = (valor: number) => {
     return `$${valor.toLocaleString()}`;
@@ -61,12 +73,15 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
               <p className="text-white/60 text-lg">No hay cobros pendientes</p>
             </div>
           ) : (
-            cobrosPendientes.map((suscripcion) => {
-              const diasAtraso = streaming.getDiasAtraso(suscripcion.proximo_cobro);
+            gruposPendientes.map((grupo) => {
+              const primera = grupo[0];
+              const esGrupo = grupo.length > 1;
+              const diasAtraso = streaming.getDiasAtraso(primera.proximo_cobro);
+              const montoTotal = grupo.reduce((sum, s) => sum + s.costo_mensual, 0);
 
               return (
                 <div
-                  key={suscripcion.id}
+                  key={`${primera.cliente_id}-${primera.proximo_cobro}`}
                   className={`bg-white/10 rounded-lg p-6 border-2 ${
                     diasAtraso >= 7 ? 'border-red-500' : 'border-yellow-500'
                   }`}
@@ -77,25 +92,62 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                         <span className="text-2xl">👤</span>
                         <div>
                           <div className="text-white font-semibold text-lg">
-                            {suscripcion.cliente?.nombre}
+                            {primera.cliente?.nombre}
                           </div>
-                          <div className="text-white/60 text-sm">
-                            {suscripcion.cuenta?.servicio} - {suscripcion.tipo_acceso}
-                          </div>
+                          {!esGrupo && (
+                            <>
+                              <div className="text-white/60 text-sm">
+                                {primera.cuenta?.servicio} - {primera.tipo_acceso}
+                              </div>
+                              {primera.email_acceso && (
+                                <div className="text-purple-300 text-xs font-mono mt-0.5">
+                                  ✉️ {primera.email_acceso}
+                                </div>
+                              )}
+                              {primera.cuenta?.email && (
+                                <div className="text-white/40 text-xs font-mono mt-0.5">
+                                  {primera.email_acceso ? '👤 cuenta madre: ' : '✉️ '}{primera.cuenta.email}
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {esGrupo && (
+                            <div className="text-white/60 text-sm">{grupo.length} servicios</div>
+                          )}
                         </div>
                       </div>
 
+                      {esGrupo && (
+                        <div className="space-y-1 mb-3 ml-11">
+                          {grupo.map((s) => (
+                            <div key={s.id} className="flex items-center justify-between text-xs bg-white/5 px-2 py-1 rounded">
+                              <span className="text-white/70">
+                                {s.cuenta?.servicio} - {s.tipo_acceso}
+                                {(s.email_acceso || s.cuenta?.email) && (
+                                  <span className="text-purple-300 font-mono ml-2">
+                                    ✉️ {s.email_acceso || s.cuenta?.email}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-white/60 whitespace-nowrap ml-2">
+                                ${s.costo_mensual.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex gap-6 mt-4">
                         <div>
-                          <div className="text-white/60 text-sm">Monto</div>
+                          <div className="text-white/60 text-sm">{esGrupo ? 'Monto total' : 'Monto'}</div>
                           <div className="text-white font-bold text-xl">
-                            {formatoMoneda(suscripcion.costo_mensual)}
+                            {formatoMoneda(montoTotal)}
                           </div>
                         </div>
                         <div>
                           <div className="text-white/60 text-sm">Próximo cobro</div>
                           <div className="text-white">
-                            {new Date(suscripcion.proximo_cobro).toLocaleDateString()}
+                            {new Date(primera.proximo_cobro).toLocaleDateString()}
                           </div>
                         </div>
                         <div>
@@ -110,10 +162,10 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                     </div>
 
                     <button
-                      onClick={() => setSuscripcionACobrar(suscripcion)}
+                      onClick={() => setGrupoACobrar(grupo)}
                       className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:scale-105"
                     >
-                      💰 Cobrar
+                      💰 {esGrupo ? 'Cobrar todo' : 'Cobrar'}
                     </button>
                   </div>
                 </div>
@@ -137,6 +189,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                 <tr>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Cliente</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Servicio</th>
+                  <th className="text-left text-white/80 px-4 py-3 text-sm">Cuenta (email)</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Monto</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Fecha</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Banco</th>
@@ -152,6 +205,18 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                   >
                     <td className="px-4 py-3 text-white">{pago.cliente?.nombre}</td>
                     <td className="px-4 py-3 text-white/80">{pago.servicio}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {pago.suscripcion?.email_acceso ? (
+                        <>
+                          <div className="text-purple-300">{pago.suscripcion.email_acceso}</div>
+                          {pago.suscripcion.cuenta?.email && (
+                            <div className="text-white/40">👤 {pago.suscripcion.cuenta.email}</div>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-purple-300">{pago.suscripcion?.cuenta?.email || '—'}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-green-400 font-semibold">
                       {formatoMoneda(pago.monto)}
                     </td>
@@ -168,13 +233,15 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
       )}
 
       {/* Modal de Cobrar */}
-      {suscripcionACobrar && (
+      {grupoACobrar && (
         <CobrarModal
-          suscripcion={suscripcionACobrar}
+          suscripciones={grupoACobrar}
           bancos={BANCOS}
-          onClose={() => setSuscripcionACobrar(null)}
+          onClose={() => setGrupoACobrar(null)}
           onCobrar={async (banco, fecha, notas) => {
-            await streaming.cobrarPago(suscripcionACobrar, banco, fecha, notas);
+            for (const s of grupoACobrar) {
+              await streaming.cobrarPago(s, banco, fecha, notas);
+            }
           }}
         />
       )}

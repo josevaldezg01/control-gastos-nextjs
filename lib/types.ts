@@ -59,8 +59,8 @@ export interface SaldosBancos {
 }
 
 export const BANCOS: Banco[] = [
-  'Banco de Bogotá',
   'Nequi',
+  'Banco de Bogotá',
   'Daviplata',
   'Colpatria',
   'Bolsillo',

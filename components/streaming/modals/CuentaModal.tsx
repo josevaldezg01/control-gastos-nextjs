@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CuentaStreaming } from '@/hooks/useStreaming';
 
 interface CuentaModalProps {
@@ -24,6 +25,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
   const [tipoCuenta, setTipoCuenta] = useState(cuenta?.tipo_cuenta || '');
   const [costoMensual, setCostoMensual] = useState(cuenta?.costo_mensual?.toString() || '');
   const [diaPago, setDiaPago] = useState(cuenta?.dia_pago?.toString() || '');
+  const [email, setEmail] = useState(cuenta?.email || '');
   const [notas, setNotas] = useState(cuenta?.notas || '');
   const [guardando, setGuardando] = useState(false);
 
@@ -41,6 +43,11 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
       return;
     }
 
+    if (!email.trim()) {
+      alert('Por favor ingresa el correo/login de la cuenta');
+      return;
+    }
+
     setGuardando(true);
     try {
       const datosCuenta = {
@@ -48,6 +55,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
         tipo_cuenta: tipoCuenta,
         costo_mensual: parseFloat(costoMensual),
         dia_pago: diaPago ? parseInt(diaPago) : null,
+        email: email.trim(),
         notas: notas || null
       };
 
@@ -61,7 +69,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-white text-2xl font-bold mb-6">
@@ -84,6 +92,22 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+          </div>
+
+          {/* Email / Login */}
+          <div>
+            <label className="block text-white/80 text-sm font-medium mb-2">
+              Correo / Login *
+            </label>
+            <input
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="multiservicios.userX@gmail.com"
+              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              required
+            />
+            <p className="text-white/40 text-xs mt-1">Identificador único para diferenciar cuentas del mismo servicio</p>
           </div>
 
           {/* Tipo de Cuenta */}
@@ -170,6 +194,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

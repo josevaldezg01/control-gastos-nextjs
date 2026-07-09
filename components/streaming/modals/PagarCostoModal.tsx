@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CuentaStreaming } from '@/hooks/useStreaming';
 
 interface PagarCostoModalProps {
@@ -45,7 +46,7 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
     }).format(valor);
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full">
         <h3 className="text-white text-2xl font-bold mb-6">💸 Registrar Pago a Servicio</h3>
@@ -153,6 +154,7 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

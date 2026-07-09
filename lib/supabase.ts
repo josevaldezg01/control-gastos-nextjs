@@ -305,6 +305,7 @@ export const streamingHelpers = {
     costo_mensual: number;
     dia_pago?: number;
     extras?: any;
+    email?: string;
     notas?: string;
   }) {
     const { data, error } = await supabase
@@ -484,6 +485,7 @@ export const streamingHelpers = {
     tipo_acceso: string;
     costo_mensual: number;
     proximo_cobro: string;
+    email_acceso?: string;
     notas?: string;
   }) {
     const { data, error } = await supabase
@@ -600,7 +602,7 @@ export const streamingHelpers = {
       .from('pagos_streaming')
       .select(`
         *,
-        suscripcion:suscripciones(*),
+        suscripcion:suscripciones(*, cuenta:cuentas_streaming(*)),
         cliente:clientes_streaming(*)
       `)
       .order('fecha_pago', { ascending: false });

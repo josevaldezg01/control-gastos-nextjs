@@ -1,16 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Suscripcion } from '@/hooks/useStreaming';
 
 interface CobrarModalProps {
-  suscripcion: Suscripcion;
+  suscripciones: Suscripcion[];
   bancos: string[];
   onClose: () => void;
   onCobrar: (banco: string, fecha: string, notas: string) => Promise<void>;
 }
 
-export const CobrarModal = ({ suscripcion, bancos, onClose, onCobrar }: CobrarModalProps) => {
+export const CobrarModal = ({ suscripciones, bancos, onClose, onCobrar }: CobrarModalProps) => {
+  const primera = suscripciones[0];
+  const esGrupo = suscripciones.length > 1;
+  const montoTotal = suscripciones.reduce((sum, s) => sum + s.costo_mensual, 0);
   const [banco, setBanco] = useState(bancos[0] || 'Nequi');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [notas, setNotas] = useState('');
@@ -45,32 +49,47 @@ export const CobrarModal = ({ suscripcion, bancos, onClose, onCobrar }: CobrarMo
     }).format(valor);
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-white text-2xl font-bold mb-6">💰 Registrar Cobro</h3>
+        <h3 className="text-white text-2xl font-bold mb-6">
+          💰 {esGrupo ? `Registrar Cobro (${suscripciones.length} servicios)` : 'Registrar Cobro'}
+        </h3>
 
         {/* Información del cobro */}
         <div className="bg-white/5 rounded-lg p-4 mb-6">
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-white/60 text-sm">Cliente:</span>
-              <span className="text-white font-semibold">{suscripcion.cliente?.nombre}</span>
+              <span className="text-white font-semibold">{primera.cliente?.nombre}</span>
             </div>
+
+            {esGrupo ? (
+              <div className="space-y-1 py-1">
+                {suscripciones.map((s) => (
+                  <div key={s.id} className="flex justify-between text-sm">
+                    <span className="text-white/60">{s.cuenta?.servicio} - {s.tipo_acceso}</span>
+                    <span className="text-white/80">{formatoMoneda(s.costo_mensual)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-white/60 text-sm">Servicio:</span>
+                <span className="text-white">{primera.cuenta?.servicio} - {primera.tipo_acceso}</span>
+              </div>
+            )}
+
             <div className="flex justify-between">
-              <span className="text-white/60 text-sm">Servicio:</span>
-              <span className="text-white">{suscripcion.cuenta?.servicio} - {suscripcion.tipo_acceso}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/60 text-sm">Monto:</span>
+              <span className="text-white/60 text-sm">{esGrupo ? 'Monto total:' : 'Monto:'}</span>
               <span className="text-green-400 font-bold text-lg">
-                {formatoMoneda(suscripcion.costo_mensual)}
+                {formatoMoneda(montoTotal)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/60 text-sm">Fecha vencimiento:</span>
               <span className="text-white/80">
-                {new Date(suscripcion.proximo_cobro).toLocaleDateString()}
+                {new Date(primera.proximo_cobro).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -125,9 +144,9 @@ export const CobrarModal = ({ suscripcion, bancos, onClose, onCobrar }: CobrarMo
           {/* Información */}
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-blue-300 text-sm">
-              ✓ Se creará un ingreso de {formatoMoneda(suscripcion.costo_mensual)} en {banco}
+              ✓ Se {esGrupo ? `crearán ${suscripciones.length} ingresos (total ${formatoMoneda(montoTotal)})` : `creará un ingreso de ${formatoMoneda(montoTotal)}`} en {banco}
               <br />
-              ✓ El próximo cobro se actualizará automáticamente al próximo mes
+              ✓ El próximo cobro de {esGrupo ? 'cada servicio' : 'este servicio'} se actualizará automáticamente al próximo mes
             </p>
           </div>
 
@@ -151,6 +170,7 @@ export const CobrarModal = ({ suscripcion, bancos, onClose, onCobrar }: CobrarMo
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

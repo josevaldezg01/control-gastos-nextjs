@@ -99,15 +99,27 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
                           className="w-full flex items-center justify-between text-xs bg-white/5 px-2 py-1 rounded hover:bg-white/10 transition-all cursor-pointer"
                           title="Ver detalles de la cuenta"
                         >
-                          <span className="text-white/70">
-                            {suscripcion.cuenta?.servicio === 'Netflix' && '🎬'}
-                            {suscripcion.cuenta?.servicio === 'Prime Video' && '📺'}
-                            {suscripcion.cuenta?.servicio === 'Disney+' && '🏰'}
-                            {suscripcion.cuenta?.servicio === 'HBO Max' && '🎭'}
-                            {suscripcion.cuenta?.servicio === 'YouTube Premium' && '▶️'}
-                            {' '}{suscripcion.cuenta?.servicio}
+                          <span className="text-white/70 flex flex-col items-start min-w-0">
+                            <span className="truncate w-full">
+                              {suscripcion.cuenta?.servicio === 'Netflix' && '🎬'}
+                              {suscripcion.cuenta?.servicio === 'Prime Video' && '📺'}
+                              {suscripcion.cuenta?.servicio === 'Disney+' && '🏰'}
+                              {suscripcion.cuenta?.servicio === 'HBO Max' && '🎭'}
+                              {suscripcion.cuenta?.servicio === 'YouTube Premium' && '▶️'}
+                              {' '}{suscripcion.cuenta?.servicio}
+                            </span>
+                            {suscripcion.email_acceso && (
+                              <span className="text-purple-300 font-mono text-[10px] truncate w-full">
+                                ✉️ {suscripcion.email_acceso}
+                              </span>
+                            )}
+                            {suscripcion.cuenta?.email && (
+                              <span className="text-white/40 font-mono text-[10px] truncate w-full">
+                                {suscripcion.email_acceso ? '👤 cuenta madre: ' : '✉️ '}{suscripcion.cuenta.email}
+                              </span>
+                            )}
                           </span>
-                          <span className="text-white/60">
+                          <span className="text-white/60 whitespace-nowrap ml-2">
                             ${suscripcion.costo_mensual.toLocaleString()}
                           </span>
                         </button>

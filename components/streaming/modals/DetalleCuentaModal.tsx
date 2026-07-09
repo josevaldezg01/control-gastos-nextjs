@@ -1,5 +1,6 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import { CuentaStreaming } from '@/hooks/useStreaming';
 
 interface DetalleCuentaModalProps {
@@ -9,6 +10,8 @@ interface DetalleCuentaModalProps {
 }
 
 export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: DetalleCuentaModalProps) => {
+  const ingresos = suscripcionesActivas.reduce((sum, s) => sum + s.costo_mensual, 0);
+  const ganancia = ingresos - cuenta.costo_mensual;
   const espaciosOcupados = suscripcionesActivas.length;
   let espaciosTotales = 1;
   const tipoCuenta = cuenta.tipo_cuenta.toLowerCase();
@@ -31,7 +34,7 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
     return `$${valor.toLocaleString()}`;
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
         className="bg-gray-900 rounded-lg p-6 max-w-md w-full"
@@ -61,6 +64,9 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
             <div>
               <div className="text-white font-bold text-xl">{cuenta.servicio}</div>
               <div className="text-white/60 text-sm">{cuenta.tipo_cuenta}</div>
+              {cuenta.email && (
+                <div className="text-purple-300 text-xs font-mono mt-1">✉️ {cuenta.email}</div>
+              )}
             </div>
           </div>
         </div>
@@ -83,6 +89,16 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
             </div>
           )}
 
+          <div className="bg-white/5 rounded-lg p-4 flex items-center justify-between">
+            <div>
+              <div className="text-white/60 text-sm mb-1">Rentabilidad</div>
+              <div className="text-white/60 text-xs">Cobrado {formatoMoneda(ingresos)} − Costo {formatoMoneda(cuenta.costo_mensual)}</div>
+            </div>
+            <div className={`font-bold text-xl ${ganancia >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {ganancia >= 0 ? '+' : ''}{formatoMoneda(ganancia)}
+            </div>
+          </div>
+
           <div className="bg-white/5 rounded-lg p-4">
             <div className="text-white/60 text-sm mb-2">Espacios ocupados</div>
             <div className="flex items-center gap-3">
@@ -90,10 +106,10 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
                 <div
                   className={`h-full rounded-full transition-all ${
                     porcentajeOcupado === 100
+                      ? 'bg-green-500'
+                      : porcentajeOcupado === 0
                       ? 'bg-red-500'
-                      : porcentajeOcupado >= 75
-                      ? 'bg-yellow-500'
-                      : 'bg-green-500'
+                      : 'bg-yellow-500'
                   }`}
                   style={{ width: `${porcentajeOcupado}%` }}
                 />
@@ -125,6 +141,11 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
                       <div className="text-white/60 text-xs">
                         {suscripcion.tipo_acceso}
                       </div>
+                      {suscripcion.email_acceso && (
+                        <div className="text-purple-300 text-xs font-mono mt-0.5">
+                          ✉️ {suscripcion.email_acceso}
+                        </div>
+                      )}
                     </div>
                     <div className="text-white/80 font-semibold">
                       {formatoMoneda(suscripcion.costo_mensual)}
@@ -152,6 +173,7 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
           Cerrar
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

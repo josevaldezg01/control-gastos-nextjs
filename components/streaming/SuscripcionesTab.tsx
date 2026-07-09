@@ -78,6 +78,7 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
                 <th className="text-left text-white/80 px-4 py-3 text-sm">Cliente</th>
                 <th className="text-left text-white/80 px-4 py-3 text-sm">Servicio</th>
                 <th className="text-left text-white/80 px-4 py-3 text-sm">Acceso</th>
+                <th className="text-left text-white/80 px-4 py-3 text-sm">Correo</th>
                 <th className="text-left text-white/80 px-4 py-3 text-sm">Costo</th>
                 <th className="text-left text-white/80 px-4 py-3 text-sm">
                   {filtroEstado === 'inactivas' ? 'Fecha fin' : 'Próximo cobro'}
@@ -102,6 +103,18 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
                     <td className="px-4 py-3 text-white">{suscripcion.cliente?.nombre}</td>
                     <td className="px-4 py-3 text-white">{suscripcion.cuenta?.servicio}</td>
                     <td className="px-4 py-3 text-white/80 text-sm">{suscripcion.tipo_acceso}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {suscripcion.email_acceso ? (
+                        <>
+                          <div className="text-purple-300">{suscripcion.email_acceso}</div>
+                          {suscripcion.cuenta?.email && (
+                            <div className="text-white/40">👤 {suscripcion.cuenta.email}</div>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-purple-300">{suscripcion.cuenta?.email || '—'}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-white font-semibold">
                       {formatoMoneda(suscripcion.costo_mensual)}
                     </td>

@@ -9,6 +9,7 @@ export interface CuentaStreaming {
   extras: any;
   costo_mensual: number;
   dia_pago: number | null;
+  email: string | null;
   activa: boolean;
   notas: string | null;
   created_at: string;
@@ -35,6 +36,7 @@ export interface Suscripcion {
   fecha_fin: string | null;
   activa: boolean;
   notas: string | null;
+  email_acceso: string | null;
   fecha_recordatorio: string | null;
   created_at: string;
   cuenta?: CuentaStreaming;
@@ -139,6 +141,7 @@ export const useStreaming = (mesActivo: string) => {
     costo_mensual: number;
     dia_pago?: number;
     extras?: any;
+    email?: string;
     notas?: string;
   }) => {
     try {
@@ -223,6 +226,7 @@ export const useStreaming = (mesActivo: string) => {
     tipo_acceso: string;
     costo_mensual: number;
     proximo_cobro: string;
+    email_acceso?: string;
     notas?: string;
   }) => {
     try {
@@ -408,6 +412,24 @@ export const useStreaming = (mesActivo: string) => {
     );
   }, [cuentas, costos]);
 
+  const getClientesDeCuenta = useCallback((cuentaId: number): Suscripcion[] => {
+    return suscripciones.filter(s => s.cuenta_id === cuentaId && s.activa);
+  }, [suscripciones]);
+
+  const getRentabilidadCuenta = useCallback((cuentaId: number) => {
+    const cuenta = cuentas.find(c => c.id === cuentaId);
+    const ingresos = suscripciones
+      .filter(s => s.cuenta_id === cuentaId && s.activa)
+      .reduce((sum, s) => sum + s.costo_mensual, 0);
+    const costo = cuenta?.costo_mensual || 0;
+
+    return { ingresos, costo, ganancia: ingresos - costo };
+  }, [suscripciones, cuentas]);
+
+  const estaCuentaPagadaEsteMes = useCallback((cuentaId: number): boolean => {
+    return costos.some(c => c.cuenta_id === cuentaId);
+  }, [costos]);
+
   const getDiasAtraso = useCallback((proximoCobro: string): number => {
     const hoy = new Date();
     const fechaCobro = new Date(proximoCobro);
@@ -454,6 +476,9 @@ export const useStreaming = (mesActivo: string) => {
     getEspaciosDisponibles,
     getSuscripcionesPendientes,
     getCostosPendientes,
+    getClientesDeCuenta,
+    getRentabilidadCuenta,
+    estaCuentaPagadaEsteMes,
     getDiasAtraso,
     recargarDatos: loadAllData
   };
