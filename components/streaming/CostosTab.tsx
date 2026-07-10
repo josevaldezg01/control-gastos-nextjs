@@ -5,6 +5,25 @@ import { useStreaming, CuentaStreaming } from '@/hooks/useStreaming';
 import { BANCOS } from '@/lib/types';
 import { PagarCostoModal } from './modals/PagarCostoModal';
 
+const SERVICIOS = ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'YouTube Premium'] as const;
+
+const ICONOS_SERVICIO: Record<string, string> = {
+  'Netflix': '🎬',
+  'Prime Video': '📺',
+  'Disney+': '🏰',
+  'HBO Max': '🎭',
+  'YouTube Premium': '▶️'
+};
+
+// Días que faltan para el próximo día de pago (de hoy en adelante, cíclico por mes)
+const diasHastaProximoPago = (diaPago: number): number => {
+  const hoy = new Date();
+  const diaActual = hoy.getDate();
+  if (diaPago >= diaActual) return diaPago - diaActual;
+  const diasEnMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+  return diasEnMes - diaActual + diaPago;
+};
+
 interface CostosTabProps {
   streaming: ReturnType<typeof useStreaming>;
   mesActivo: string;
@@ -13,9 +32,17 @@ interface CostosTabProps {
 export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
   const [vista, setVista] = useState<'pendientes' | 'pagados'>('pendientes');
   const [cuentaAPagar, setCuentaAPagar] = useState<CuentaStreaming | null>(null);
+  const [filtroServicio, setFiltroServicio] = useState<string>('todos');
 
-  const costosPendientes = streaming.getCostosPendientes();
-  const costosPagados = streaming.costos;
+  const costosPendientesTodos = streaming.getCostosPendientes();
+  const costosPagadosTodos = streaming.costos;
+
+  const costosPendientes = costosPendientesTodos
+    .filter(c => filtroServicio === 'todos' || c.servicio === filtroServicio)
+    .sort((a, b) => diasHastaProximoPago(a.dia_pago || 32) - diasHastaProximoPago(b.dia_pago || 32));
+
+  const costosPagados = costosPagadosTodos
+    .filter(c => filtroServicio === 'todos' || c.servicio === filtroServicio);
 
   const formatoMoneda = (valor: number) => {
     return `$${valor.toLocaleString()}`;
@@ -52,13 +79,46 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
         </button>
       </div>
 
+      {/* Filtro por servicio */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setFiltroServicio('todos')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            filtroServicio === 'todos'
+              ? 'bg-purple-500 text-white'
+              : 'bg-white/10 text-white/60 hover:bg-white/20'
+          }`}
+        >
+          Todos
+        </button>
+        {SERVICIOS.map((servicio) => {
+          const tieneAlguna = streaming.cuentas.some(c => c.servicio === servicio);
+          if (!tieneAlguna) return null;
+          return (
+            <button
+              key={servicio}
+              onClick={() => setFiltroServicio(servicio)}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                filtroServicio === servicio
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+            >
+              {ICONOS_SERVICIO[servicio]} {servicio}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Lista Pendientes */}
       {vista === 'pendientes' && (
         <div className="space-y-4">
           {costosPendientes.length === 0 ? (
             <div className="bg-white/5 rounded-lg p-12 text-center">
               <div className="text-6xl mb-4">✅</div>
-              <p className="text-white/60 text-lg">Todos los costos están pagados</p>
+              <p className="text-white/60 text-lg">
+                {filtroServicio === 'todos' ? 'Todos los costos están pagados' : 'No hay pendientes de este servicio'}
+              </p>
             </div>
           ) : (
             costosPendientes.map((cuenta) => (
