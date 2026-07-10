@@ -174,8 +174,8 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
           cuenta={cuentaAPagar}
           bancos={BANCOS}
           onClose={() => setCuentaAPagar(null)}
-          onPagar={async (banco, fecha, notas) => {
-            await streaming.pagarCosto(cuentaAPagar, banco, fecha, notas);
+          onPagar={async (banco, fecha, notas, monto) => {
+            await streaming.pagarCosto(cuentaAPagar, banco, fecha, notas, monto);
           }}
         />
       )}

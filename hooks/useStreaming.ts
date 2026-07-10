@@ -321,7 +321,8 @@ export const useStreaming = (mesActivo: string) => {
     cuenta: CuentaStreaming,
     banco: string,
     fecha: string,
-    notas: string = ''
+    notas: string = '',
+    monto?: number
   ) => {
     try {
       if (!mesActivo) {
@@ -333,7 +334,7 @@ export const useStreaming = (mesActivo: string) => {
         cuenta_id: cuenta.id,
         servicio: cuenta.servicio,
         tipo_cuenta: cuenta.tipo_cuenta,
-        monto: cuenta.costo_mensual,
+        monto: monto ?? cuenta.costo_mensual,
         fecha_pago: fecha,
         banco_origen: banco,
         mes_contable: mesActivo,

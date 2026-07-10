@@ -4,17 +4,21 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CuentaStreaming } from '@/hooks/useStreaming';
 
+const PINES_NETFLIX = [20000, 30000, 35000, 40000, 50000];
+
 interface PagarCostoModalProps {
   cuenta: CuentaStreaming;
   bancos: string[];
   onClose: () => void;
-  onPagar: (banco: string, fecha: string, notas: string) => Promise<void>;
+  onPagar: (banco: string, fecha: string, notas: string, monto: number) => Promise<void>;
 }
 
 export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCostoModalProps) => {
+  const esNetflix = cuenta.servicio === 'Netflix';
   const [banco, setBanco] = useState(bancos[0] || 'Nequi');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [notas, setNotas] = useState('');
+  const [monto, setMonto] = useState<number>(esNetflix ? PINES_NETFLIX[0] : cuenta.costo_mensual);
   const [guardando, setGuardando] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,9 +29,14 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
       return;
     }
 
+    if (!monto || monto <= 0) {
+      alert('Por favor selecciona el pin/monto a aplicar');
+      return;
+    }
+
     setGuardando(true);
     try {
-      await onPagar(banco, fecha, notas);
+      await onPagar(banco, fecha, notas, monto);
       onClose();
     } catch (error) {
       console.error('Error pagando costo:', error);
@@ -63,8 +72,10 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
               <span className="text-white">{cuenta.tipo_cuenta}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/60 text-sm">Monto:</span>
-              <span className="text-red-400 font-bold text-lg">
+              <span className="text-white/60 text-sm">
+                {esNetflix ? 'Costo mensual cuenta:' : 'Monto:'}
+              </span>
+              <span className={esNetflix ? 'text-white/60' : 'text-red-400 font-bold text-lg'}>
                 {formatoMoneda(cuenta.costo_mensual)}
               </span>
             </div>
@@ -80,6 +91,34 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Selector de pin (solo Netflix) */}
+          {esNetflix && (
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">
+                Pin a aplicar *
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {PINES_NETFLIX.map((pin) => (
+                  <button
+                    key={pin}
+                    type="button"
+                    onClick={() => setMonto(pin)}
+                    className={`px-3 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      monto === pin
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-800 text-white/70 hover:bg-gray-700 border border-gray-700'
+                    }`}
+                  >
+                    {formatoMoneda(pin)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-white/40 text-xs mt-2">
+                Este es el valor que se registrará como gasto (puede ser distinto al costo mensual de la cuenta)
+              </p>
+            </div>
+          )}
+
           {/* Banco */}
           <div>
             <label className="block text-white/80 text-sm font-medium mb-2">
@@ -128,7 +167,7 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
           {/* Información */}
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
             <p className="text-red-300 text-sm">
-              ✓ Se creará un gasto de {formatoMoneda(cuenta.costo_mensual)} en {banco}
+              ✓ Se creará un gasto de {formatoMoneda(monto)} en {banco}
               <br />
               ✓ Este pago se registrará en el mes contable actual
             </p>
