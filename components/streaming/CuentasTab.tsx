@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useStreaming } from '@/hooks/useStreaming';
 import { CuentaModal } from './modals/CuentaModal';
+import { TareaModal } from './modals/TareaModal';
 
 interface CuentasTabProps {
   streaming: ReturnType<typeof useStreaming>;
@@ -22,6 +23,7 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
   const [mostrandoModal, setMostrandoModal] = useState(false);
   const [cuentaEditando, setCuentaEditando] = useState<any>(null);
   const [filtroServicio, setFiltroServicio] = useState<string>('todos');
+  const [cuentaParaTarea, setCuentaParaTarea] = useState<number | null>(null);
 
   const cuentasFiltradas = filtroServicio === 'todos'
     ? streaming.cuentas
@@ -109,6 +111,7 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
             const clientesDeCuenta = streaming.getClientesDeCuenta(cuenta.id);
             const rentabilidad = streaming.getRentabilidadCuenta(cuenta.id);
             const pagadaEsteMes = streaming.estaCuentaPagadaEsteMes(cuenta.id);
+            const tareasPendientes = streaming.getTareasPendientesDeCuenta(cuenta.id);
 
             return (
               <div
@@ -130,6 +133,13 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                     <span className="text-white font-semibold">{cuenta.servicio}</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCuentaParaTarea(cuenta.id)}
+                      className="text-orange-300 hover:text-orange-200 text-sm px-1 hover:bg-orange-500/10 rounded transition-all"
+                      title="Agregar tarea/pendiente"
+                    >
+                      📌
+                    </button>
                     {cuenta.activa && (
                       <span className={`text-xs px-2 py-1 rounded ${
                         pagadaEsteMes
@@ -162,12 +172,16 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                   {formatoMoneda(cuenta.costo_mensual)}/mes
                 </div>
 
-                {/* Día de pago */}
-                {cuenta.dia_pago && (
-                  <div className="text-white/60 text-sm mb-3">
-                    📅 Paga día {cuenta.dia_pago} de cada mes
+                {/* Día de pago / próxima recarga (Netflix) */}
+                {cuenta.servicio === 'Netflix' && cuenta.proxima_recarga ? (
+                  <div className="text-orange-300 text-sm mb-3">
+                    📅 Próxima recarga: {new Date(cuenta.proxima_recarga).toLocaleDateString()}
                   </div>
-                )}
+                ) : cuenta.dia_pago ? (
+                  <div className="text-white/60 text-sm mb-3">
+                    📅 {cuenta.servicio === 'Netflix' ? 'Paga (estimado) día' : 'Paga día'} {cuenta.dia_pago} de cada mes
+                  </div>
+                ) : null}
 
                 {/* Ocupación */}
                 <div className="mb-3">
@@ -239,6 +253,17 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                   </button>
                 </div>
 
+                {tareasPendientes.length > 0 && (
+                  <div className="bg-orange-500/20 border border-orange-500/40 rounded-lg px-3 py-2 mt-3 space-y-1">
+                    {tareasPendientes.map((tarea) => (
+                      <div key={tarea.id} className="text-orange-200 text-xs flex items-start gap-1">
+                        <span>📌</span>
+                        <span>{tarea.descripcion}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Notas */}
                 {cuenta.notas && (
                   <div className="mt-3 text-white/60 text-xs border-t border-white/10 pt-3">
@@ -263,6 +288,15 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
               await streaming.agregarCuenta(datos);
             }
           }}
+        />
+      )}
+
+      {/* Modal de Tarea rápida */}
+      {cuentaParaTarea !== null && (
+        <TareaModal
+          streaming={streaming}
+          cuentaIdPreset={cuentaParaTarea}
+          onClose={() => setCuentaParaTarea(null)}
         />
       )}
     </div>

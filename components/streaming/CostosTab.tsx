@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useStreaming, CuentaStreaming } from '@/hooks/useStreaming';
+import { useStreaming, CuentaStreaming, PINES_NETFLIX, diasCubiertosPorPin, calcularProximaRecarga } from '@/hooks/useStreaming';
 import { BANCOS } from '@/lib/types';
 import { PagarCostoModal } from './modals/PagarCostoModal';
 
@@ -24,6 +24,18 @@ const diasHastaProximoPago = (diaPago: number): number => {
   return diasEnMes - diaActual + diaPago;
 };
 
+// Para Netflix, usa la fecha real de próxima recarga (calculada según el pin aplicado)
+// en vez de asumir un día fijo de cada mes
+const diasHastaProxima = (cuenta: CuentaStreaming): number => {
+  if (cuenta.servicio === 'Netflix' && cuenta.proxima_recarga) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fecha = new Date(cuenta.proxima_recarga);
+    return Math.floor((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+  }
+  return diasHastaProximoPago(cuenta.dia_pago || 32);
+};
+
 interface CostosTabProps {
   streaming: ReturnType<typeof useStreaming>;
   mesActivo: string;
@@ -33,13 +45,45 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
   const [vista, setVista] = useState<'pendientes' | 'pagados'>('pendientes');
   const [cuentaAPagar, setCuentaAPagar] = useState<CuentaStreaming | null>(null);
   const [filtroServicio, setFiltroServicio] = useState<string>('todos');
+  const [pinDrafts, setPinDrafts] = useState<Record<number, { pin: number; codigo: string }>>({});
+  const [guardandoPin, setGuardandoPin] = useState<number | null>(null);
+
+  const getDraft = (cuenta: CuentaStreaming) =>
+    pinDrafts[cuenta.id] || {
+      pin: cuenta.pin_pendiente_valor || PINES_NETFLIX[0],
+      codigo: cuenta.pin_pendiente_codigo || ''
+    };
+
+  const setDraftPin = (cuenta: CuentaStreaming, pin: number) => {
+    setPinDrafts(prev => ({ ...prev, [cuenta.id]: { ...getDraft(cuenta), pin } }));
+  };
+
+  const setDraftCodigo = (cuenta: CuentaStreaming, codigo: string) => {
+    setPinDrafts(prev => ({ ...prev, [cuenta.id]: { ...getDraft(cuenta), codigo } }));
+  };
+
+  const guardarPinPendiente = async (cuenta: CuentaStreaming) => {
+    const draft = getDraft(cuenta);
+    setGuardandoPin(cuenta.id);
+    try {
+      await streaming.actualizarCuenta(cuenta.id, {
+        pin_pendiente_codigo: draft.codigo.trim() || null,
+        pin_pendiente_valor: draft.pin
+      });
+    } catch (error) {
+      console.error('Error guardando pin pendiente:', error);
+      alert('Error al guardar el pin');
+    } finally {
+      setGuardandoPin(null);
+    }
+  };
 
   const costosPendientesTodos = streaming.getCostosPendientes();
   const costosPagadosTodos = streaming.costos;
 
   const costosPendientes = costosPendientesTodos
     .filter(c => filtroServicio === 'todos' || c.servicio === filtroServicio)
-    .sort((a, b) => diasHastaProximoPago(a.dia_pago || 32) - diasHastaProximoPago(b.dia_pago || 32));
+    .sort((a, b) => diasHastaProxima(a) - diasHastaProxima(b));
 
   const costosPagados = costosPagadosTodos
     .filter(c => filtroServicio === 'todos' || c.servicio === filtroServicio);
@@ -121,7 +165,15 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
               </p>
             </div>
           ) : (
-            costosPendientes.map((cuenta) => (
+            costosPendientes.map((cuenta) => {
+              const esNetflix = cuenta.servicio === 'Netflix';
+              const draft = getDraft(cuenta);
+              const hoy = new Date().toISOString().split('T')[0];
+              const pinGuardado =
+                cuenta.pin_pendiente_valor === draft.pin &&
+                (cuenta.pin_pendiente_codigo || '') === draft.codigo;
+
+              return (
               <div
                 key={cuenta.id}
                 className="bg-white/10 rounded-lg p-6 border-2 border-purple-500"
@@ -158,15 +210,71 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                           {formatoMoneda(cuenta.costo_mensual)}
                         </div>
                       </div>
-                      {cuenta.dia_pago && (
+                      {esNetflix && cuenta.proxima_recarga ? (
                         <div>
-                          <div className="text-white/60 text-sm">Día de pago</div>
+                          <div className="text-white/60 text-sm">Próxima recarga</div>
+                          <div className="text-white">
+                            {new Date(cuenta.proxima_recarga).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ) : cuenta.dia_pago ? (
+                        <div>
+                          <div className="text-white/60 text-sm">
+                            {esNetflix ? 'Día de pago (estimado)' : 'Día de pago'}
+                          </div>
                           <div className="text-white">
                             Día {cuenta.dia_pago} de cada mes
                           </div>
                         </div>
-                      )}
+                      ) : null}
                     </div>
+
+                    {esNetflix && (
+                      <div className="bg-white/5 rounded-lg p-3 mt-4 space-y-2 max-w-sm">
+                        <div className="text-white/60 text-xs font-medium">Pin de recarga</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {PINES_NETFLIX.map((pin) => (
+                            <button
+                              key={pin}
+                              type="button"
+                              onClick={() => setDraftPin(cuenta, pin)}
+                              className={`px-2 py-1.5 rounded font-semibold text-xs transition-all ${
+                                draft.pin === pin
+                                  ? 'bg-red-500 text-white'
+                                  : 'bg-gray-800 text-white/70 hover:bg-gray-700 border border-gray-700'
+                              }`}
+                            >
+                              {formatoMoneda(pin)}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={draft.codigo}
+                            onChange={(e) => setDraftCodigo(cuenta, e.target.value)}
+                            placeholder="Código del pin"
+                            className="flex-1 min-w-0 bg-gray-800 text-white px-3 py-2 rounded border border-gray-700 focus:border-red-500 focus:outline-none font-mono text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => guardarPinPendiente(cuenta)}
+                            disabled={guardandoPin === cuenta.id}
+                            className={`px-3 py-2 rounded text-sm font-semibold transition-all whitespace-nowrap ${
+                              pinGuardado
+                                ? 'bg-green-500/20 text-green-300'
+                                : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                            }`}
+                          >
+                            {guardandoPin === cuenta.id ? '...' : pinGuardado ? '✓ Guardado' : '💾 Guardar'}
+                          </button>
+                        </div>
+                        <p className="text-orange-300 text-xs">
+                          📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(hoy, draft.pin, cuenta.costo_mensual)).toLocaleDateString()}
+                          {' '}({diasCubiertosPorPin(draft.pin, cuenta.costo_mensual)} días)
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -177,7 +285,8 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                   </button>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       )}
@@ -198,6 +307,8 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Cuenta (email)</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Tipo Cuenta</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Monto</th>
+                  <th className="text-left text-white/80 px-4 py-3 text-sm">Código pin</th>
+                  <th className="text-left text-white/80 px-4 py-3 text-sm">Próxima recarga</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Fecha</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Banco</th>
                 </tr>
@@ -216,6 +327,12 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                     <td className="px-4 py-3 text-red-400 font-semibold">
                       {formatoMoneda(costo.monto)}
                     </td>
+                    <td className="px-4 py-3 text-white/80 font-mono text-xs">{costo.codigo_pin || '—'}</td>
+                    <td className="px-4 py-3 text-orange-300 text-sm">
+                      {costo.servicio === 'Netflix' && costo.cuenta?.costo_mensual
+                        ? new Date(calcularProximaRecarga(costo.fecha_pago, costo.monto, costo.cuenta.costo_mensual)).toLocaleDateString()
+                        : '—'}
+                    </td>
                     <td className="px-4 py-3 text-white/80 text-sm">
                       {new Date(costo.fecha_pago).toLocaleDateString()}
                     </td>
@@ -233,9 +350,17 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
         <PagarCostoModal
           cuenta={cuentaAPagar}
           bancos={BANCOS}
+          pinInicial={getDraft(cuentaAPagar).pin}
+          codigoInicial={getDraft(cuentaAPagar).codigo}
           onClose={() => setCuentaAPagar(null)}
-          onPagar={async (banco, fecha, notas, monto) => {
-            await streaming.pagarCosto(cuentaAPagar, banco, fecha, notas, monto);
+          onPagar={async (banco, fecha, notas, monto, codigoPin) => {
+            await streaming.pagarCosto(cuentaAPagar, banco, fecha, notas, monto, codigoPin);
+            // El hook ya limpió el pin pendiente guardado; limpiamos también el borrador local
+            setPinDrafts(prev => {
+              const next = { ...prev };
+              delete next[cuentaAPagar.id];
+              return next;
+            });
           }}
         />
       )}

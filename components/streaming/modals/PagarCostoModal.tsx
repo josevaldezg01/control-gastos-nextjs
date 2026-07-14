@@ -2,23 +2,24 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CuentaStreaming } from '@/hooks/useStreaming';
-
-const PINES_NETFLIX = [20000, 30000, 35000, 40000, 50000];
+import { CuentaStreaming, PINES_NETFLIX, calcularProximaRecarga, diasCubiertosPorPin } from '@/hooks/useStreaming';
 
 interface PagarCostoModalProps {
   cuenta: CuentaStreaming;
   bancos: string[];
+  pinInicial?: number;
+  codigoInicial?: string;
   onClose: () => void;
-  onPagar: (banco: string, fecha: string, notas: string, monto: number) => Promise<void>;
+  onPagar: (banco: string, fecha: string, notas: string, monto: number, codigoPin?: string) => Promise<void>;
 }
 
-export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCostoModalProps) => {
+export const PagarCostoModal = ({ cuenta, bancos, pinInicial, codigoInicial, onClose, onPagar }: PagarCostoModalProps) => {
   const esNetflix = cuenta.servicio === 'Netflix';
   const [banco, setBanco] = useState(bancos[0] || 'Nequi');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [notas, setNotas] = useState('');
-  const [monto, setMonto] = useState<number>(esNetflix ? PINES_NETFLIX[0] : cuenta.costo_mensual);
+  const [monto, setMonto] = useState<number>(esNetflix ? (pinInicial || PINES_NETFLIX[0]) : cuenta.costo_mensual);
+  const [codigoPin, setCodigoPin] = useState(codigoInicial || '');
   const [guardando, setGuardando] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +37,7 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
 
     setGuardando(true);
     try {
-      await onPagar(banco, fecha, notas, monto);
+      await onPagar(banco, fecha, notas, monto, esNetflix ? codigoPin.trim() || undefined : undefined);
       onClose();
     } catch (error) {
       console.error('Error pagando costo:', error);
@@ -115,6 +116,26 @@ export const PagarCostoModal = ({ cuenta, bancos, onClose, onPagar }: PagarCosto
               </div>
               <p className="text-white/40 text-xs mt-2">
                 Este es el valor que se registrará como gasto (puede ser distinto al costo mensual de la cuenta)
+              </p>
+            </div>
+          )}
+
+          {/* Código del pin (solo Netflix) */}
+          {esNetflix && (
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">
+                Código del pin
+              </label>
+              <input
+                type="text"
+                value={codigoPin}
+                onChange={(e) => setCodigoPin(e.target.value)}
+                placeholder="Ej: 1234-5678-9012"
+                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none font-mono"
+              />
+              <p className="text-orange-300 text-xs mt-2">
+                📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(fecha, monto, cuenta.costo_mensual)).toLocaleDateString()}
+                {' '}({diasCubiertosPorPin(monto, cuenta.costo_mensual)} días)
               </p>
             </div>
           )}

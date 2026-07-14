@@ -2,18 +2,20 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useStreaming } from '@/hooks/useStreaming';
+import { useStreaming, TareaStreaming } from '@/hooks/useStreaming';
 
 interface TareaModalProps {
   streaming: ReturnType<typeof useStreaming>;
+  tarea?: TareaStreaming | null;
   clienteIdPreset?: number;
+  cuentaIdPreset?: number;
   onClose: () => void;
 }
 
-export const TareaModal = ({ streaming, clienteIdPreset, onClose }: TareaModalProps) => {
-  const [descripcion, setDescripcion] = useState('');
-  const [clienteId, setClienteId] = useState<number>(clienteIdPreset || 0);
-  const [cuentaId, setCuentaId] = useState<number>(0);
+export const TareaModal = ({ streaming, tarea, clienteIdPreset, cuentaIdPreset, onClose }: TareaModalProps) => {
+  const [descripcion, setDescripcion] = useState(tarea?.descripcion || '');
+  const [clienteId, setClienteId] = useState<number>(tarea?.cliente_id || clienteIdPreset || 0);
+  const [cuentaId, setCuentaId] = useState<number>(tarea?.cuenta_id || cuentaIdPreset || 0);
   const [guardando, setGuardando] = useState(false);
 
   const clientesActivos = streaming.clientes.filter(c => c.activo);
@@ -29,11 +31,16 @@ export const TareaModal = ({ streaming, clienteIdPreset, onClose }: TareaModalPr
 
     setGuardando(true);
     try {
-      await streaming.agregarTarea({
+      const datos = {
         descripcion: descripcion.trim(),
         cliente_id: clienteId || null,
         cuenta_id: cuentaId || null
-      });
+      };
+      if (tarea) {
+        await streaming.actualizarTarea(tarea.id, datos);
+      } else {
+        await streaming.agregarTarea(datos);
+      }
       onClose();
     } catch (error) {
       console.error('Error guardando tarea:', error);
@@ -46,7 +53,7 @@ export const TareaModal = ({ streaming, clienteIdPreset, onClose }: TareaModalPr
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-white text-2xl font-bold mb-6">📌 Nueva Tarea</h3>
+        <h3 className="text-white text-2xl font-bold mb-6">📌 {tarea ? 'Editar Tarea' : 'Nueva Tarea'}</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Descripción */}

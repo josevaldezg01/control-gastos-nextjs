@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useStreaming } from '@/hooks/useStreaming';
+import { useStreaming, TareaStreaming } from '@/hooks/useStreaming';
 import { TareaModal } from './modals/TareaModal';
 
 interface TareasTabProps {
@@ -11,6 +11,7 @@ interface TareasTabProps {
 export const TareasTab = ({ streaming }: TareasTabProps) => {
   const [vista, setVista] = useState<'pendientes' | 'completadas'>('pendientes');
   const [mostrandoModal, setMostrandoModal] = useState(false);
+  const [tareaEditando, setTareaEditando] = useState<TareaStreaming | null>(null);
 
   const pendientes = streaming.tareas.filter(t => !t.completada);
   const completadas = streaming.tareas.filter(t => t.completada);
@@ -111,6 +112,13 @@ export const TareasTab = ({ streaming }: TareasTabProps) => {
                   </button>
                 )}
                 <button
+                  onClick={() => setTareaEditando(tarea)}
+                  className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 px-3 py-2 rounded text-sm font-medium transition-all"
+                  title="Editar tarea"
+                >
+                  ✏️
+                </button>
+                <button
                   onClick={() => {
                     if (confirm('¿Eliminar esta tarea?')) {
                       streaming.eliminarTarea(tarea.id);
@@ -132,6 +140,15 @@ export const TareasTab = ({ streaming }: TareasTabProps) => {
         <TareaModal
           streaming={streaming}
           onClose={() => setMostrandoModal(false)}
+        />
+      )}
+
+      {/* Modal de Edición */}
+      {tareaEditando && (
+        <TareaModal
+          streaming={streaming}
+          tarea={tareaEditando}
+          onClose={() => setTareaEditando(null)}
         />
       )}
     </div>

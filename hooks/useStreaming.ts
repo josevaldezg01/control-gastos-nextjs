@@ -12,6 +12,9 @@ export interface CuentaStreaming {
   email: string | null;
   activa: boolean;
   notas: string | null;
+  pin_pendiente_codigo: string | null;
+  pin_pendiente_valor: number | null;
+  proxima_recarga: string | null;
   created_at: string;
 }
 
@@ -68,9 +71,25 @@ export interface CostoStreaming {
   banco_origen: string;
   mes_contable: string;
   notas: string | null;
+  codigo_pin: string | null;
   created_at: string;
   cuenta?: CuentaStreaming;
 }
+
+// Pines de recarga de Netflix y cálculo de cuánto tiempo cubre cada uno
+export const PINES_NETFLIX = [20000, 30000, 35000, 40000, 50000];
+
+export const diasCubiertosPorPin = (pinValor: number, costoMensual: number): number => {
+  if (!costoMensual) return 0;
+  return Math.round((pinValor / costoMensual) * 30);
+};
+
+export const calcularProximaRecarga = (fechaBase: string, pinValor: number, costoMensual: number): string => {
+  const dias = diasCubiertosPorPin(pinValor, costoMensual);
+  const fecha = new Date(fechaBase);
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha.toISOString().split('T')[0];
+};
 
 export interface TareaStreaming {
   id: number;
@@ -338,7 +357,8 @@ export const useStreaming = (mesActivo: string) => {
     banco: string,
     fecha: string,
     notas: string = '',
-    monto?: number
+    monto?: number,
+    codigoPin?: string
   ) => {
     try {
       if (!mesActivo) {
@@ -354,10 +374,22 @@ export const useStreaming = (mesActivo: string) => {
         fecha_pago: fecha,
         banco_origen: banco,
         mes_contable: mesActivo,
-        notas
+        notas,
+        codigo_pin: codigoPin || null
       });
 
-      // 2. Recargar datos
+      // 2. Si es Netflix, recalcular la próxima fecha de recarga según el pin aplicado
+      //    y limpiar el pin pendiente (ya quedó aplicado)
+      if (cuenta.servicio === 'Netflix') {
+        const montoAplicado = monto ?? cuenta.costo_mensual;
+        await streamingHelpers.updateCuenta(cuenta.id, {
+          proxima_recarga: calcularProximaRecarga(fecha, montoAplicado, cuenta.costo_mensual),
+          pin_pendiente_codigo: null,
+          pin_pendiente_valor: null
+        });
+      }
+
+      // 3. Recargar datos
       await loadAllData();
 
       return costo;
@@ -382,6 +414,21 @@ export const useStreaming = (mesActivo: string) => {
       return nueva;
     } catch (err) {
       console.error('Error agregando tarea:', err);
+      throw err;
+    }
+  };
+
+  const actualizarTarea = async (id: number, updates: {
+    descripcion?: string;
+    cliente_id?: number | null;
+    cuenta_id?: number | null;
+  }) => {
+    try {
+      const actualizada = await streamingHelpers.updateTarea(id, updates);
+      setTareas(prev => prev.map(t => t.id === id ? actualizada : t));
+      return actualizada;
+    } catch (err) {
+      console.error('Error actualizando tarea:', err);
       throw err;
     }
   };
@@ -420,6 +467,10 @@ export const useStreaming = (mesActivo: string) => {
 
   const getTareasPendientesDeCliente = useCallback((clienteId: number): TareaStreaming[] => {
     return tareas.filter(t => t.cliente_id === clienteId && !t.completada);
+  }, [tareas]);
+
+  const getTareasPendientesDeCuenta = useCallback((cuentaId: number): TareaStreaming[] => {
+    return tareas.filter(t => t.cuenta_id === cuentaId && !t.completada);
   }, [tareas]);
 
   // ============================================
@@ -546,10 +597,12 @@ export const useStreaming = (mesActivo: string) => {
 
     // Funciones de tareas
     agregarTarea,
+    actualizarTarea,
     completarTarea,
     reabrirTarea,
     eliminarTarea,
     getTareasPendientesDeCliente,
+    getTareasPendientesDeCuenta,
 
     // Utilidades y cálculos
     calcularMetricas,

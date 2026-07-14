@@ -687,6 +687,7 @@ export const streamingHelpers = {
     banco_origen: string;
     mes_contable: string;
     notas?: string;
+    codigo_pin?: string | null;
   }) {
     // 1. Crear registro de costo
     const { data: costoData, error: costoError } = await supabase
@@ -873,6 +874,26 @@ export const streamingHelpers = {
     const { data, error } = await supabase
       .from('tareas_streaming')
       .insert([tarea])
+      .select(`
+        *,
+        cliente:clientes_streaming(*),
+        cuenta:cuentas_streaming(*)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateTarea(id: number, updates: {
+    descripcion?: string;
+    cliente_id?: number | null;
+    cuenta_id?: number | null;
+  }) {
+    const { data, error } = await supabase
+      .from('tareas_streaming')
+      .update(updates)
+      .eq('id', id)
       .select(`
         *,
         cliente:clientes_streaming(*),
