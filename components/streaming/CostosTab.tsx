@@ -172,6 +172,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
               const pinGuardado =
                 cuenta.pin_pendiente_valor === draft.pin &&
                 (cuenta.pin_pendiente_codigo || '') === draft.codigo;
+              const tareasCuenta = streaming.getTareasPendientesDeCuenta(cuenta.id);
 
               return (
               <div
@@ -202,6 +203,17 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                         )}
                       </div>
                     </div>
+
+                    {tareasCuenta.length > 0 && (
+                      <div className="bg-orange-500/20 border border-orange-500/40 rounded-lg px-3 py-2 mt-3 space-y-1">
+                        {tareasCuenta.map((tarea) => (
+                          <div key={tarea.id} className="text-orange-200 text-sm flex items-start gap-2">
+                            <span>📌</span>
+                            <span>{tarea.descripcion}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="flex gap-6 mt-4">
                       <div>
