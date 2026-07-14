@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useStreaming, CuentaStreaming } from '@/hooks/useStreaming';
 import { ClienteModal } from './modals/ClienteModal';
 import { DetalleCuentaModal } from './modals/DetalleCuentaModal';
+import { TareaModal } from './modals/TareaModal';
 
 interface ClientesTabProps {
   streaming: ReturnType<typeof useStreaming>;
@@ -13,6 +14,19 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
   const [mostrandoModal, setMostrandoModal] = useState(false);
   const [clienteEditando, setClienteEditando] = useState<any>(null);
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState<CuentaStreaming | null>(null);
+  const [clienteParaTarea, setClienteParaTarea] = useState<number | null>(null);
+  const [filtroClientes, setFiltroClientes] = useState<'con_servicios' | 'sin_servicios' | 'todos'>('con_servicios');
+
+  const tieneServiciosActivos = (clienteId: number) =>
+    streaming.suscripciones.some(s => s.cliente_id === clienteId && s.activa);
+
+  const clientesConServicios = streaming.clientes.filter(c => tieneServiciosActivos(c.id));
+  const clientesSinServicios = streaming.clientes.filter(c => !tieneServiciosActivos(c.id));
+
+  const clientesFiltrados =
+    filtroClientes === 'con_servicios' ? clientesConServicios
+    : filtroClientes === 'sin_servicios' ? clientesSinServicios
+    : streaming.clientes;
 
   const abrirModal = (cliente?: any) => {
     setClienteEditando(cliente || null);
@@ -37,19 +51,63 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
         </button>
       </div>
 
+      {/* Filtro por servicios */}
+      {streaming.clientes.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setFiltroClientes('con_servicios')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              filtroClientes === 'con_servicios'
+                ? 'bg-green-500 text-white'
+                : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            Con servicios ({clientesConServicios.length})
+          </button>
+          <button
+            onClick={() => setFiltroClientes('sin_servicios')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              filtroClientes === 'sin_servicios'
+                ? 'bg-gray-500 text-white'
+                : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            Sin servicios ({clientesSinServicios.length})
+          </button>
+          <button
+            onClick={() => setFiltroClientes('todos')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              filtroClientes === 'todos'
+                ? 'bg-purple-500 text-white'
+                : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            Todos ({streaming.clientes.length})
+          </button>
+        </div>
+      )}
+
       {/* Lista de clientes */}
       {streaming.clientes.length === 0 ? (
         <div className="bg-white/5 rounded-lg p-12 text-center">
           <div className="text-6xl mb-4">👥</div>
           <p className="text-white/60 text-lg">No hay clientes registrados</p>
         </div>
+      ) : clientesFiltrados.length === 0 ? (
+        <div className="bg-white/5 rounded-lg p-12 text-center">
+          <div className="text-6xl mb-4">👥</div>
+          <p className="text-white/60 text-lg">
+            {filtroClientes === 'sin_servicios' ? 'Ningún cliente sin servicios' : 'No hay clientes en este filtro'}
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {streaming.clientes.map((cliente) => {
+          {clientesFiltrados.map((cliente) => {
             const suscripciones = streaming.suscripciones.filter(
               s => s.cliente_id === cliente.id && s.activa
             );
             const totalMensual = suscripciones.reduce((sum, s) => sum + s.costo_mensual, 0);
+            const tareasPendientes = streaming.getTareasPendientesDeCliente(cliente.id);
 
             return (
               <div
@@ -61,6 +119,13 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-2xl">👤</span>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setClienteParaTarea(cliente.id)}
+                      className="text-orange-300 hover:text-orange-200 text-sm px-2 py-1 hover:bg-orange-500/10 rounded transition-all"
+                      title="Agregar tarea/pendiente"
+                    >
+                      📌
+                    </button>
                     <button
                       onClick={() => abrirModal(cliente)}
                       className="text-blue-300 hover:text-blue-200 text-sm px-2 py-1 hover:bg-blue-500/10 rounded transition-all"
@@ -132,6 +197,17 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
                   </div>
                 </div>
 
+                {tareasPendientes.length > 0 && (
+                  <div className="bg-orange-500/20 border border-orange-500/40 rounded-lg px-3 py-2 mt-3 space-y-1">
+                    {tareasPendientes.map((tarea) => (
+                      <div key={tarea.id} className="text-orange-200 text-xs flex items-start gap-1">
+                        <span>📌</span>
+                        <span>{tarea.descripcion}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {cliente.notas && (
                   <div className="mt-3 text-white/60 text-xs border-t border-white/10 pt-3">
                     💬 {cliente.notas}
@@ -166,6 +242,15 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
             s => s.cuenta_id === cuentaSeleccionada.id && s.activa
           )}
           onClose={() => setCuentaSeleccionada(null)}
+        />
+      )}
+
+      {/* Modal de Tarea rápida */}
+      {clienteParaTarea !== null && (
+        <TareaModal
+          streaming={streaming}
+          clienteIdPreset={clienteParaTarea}
+          onClose={() => setClienteParaTarea(null)}
         />
       )}
     </div>

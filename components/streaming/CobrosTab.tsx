@@ -78,6 +78,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
               const esGrupo = grupo.length > 1;
               const diasAtraso = streaming.getDiasAtraso(primera.proximo_cobro);
               const montoTotal = grupo.reduce((sum, s) => sum + s.costo_mensual, 0);
+              const tareasCliente = streaming.getTareasPendientesDeCliente(primera.cliente_id);
 
               return (
                 <div
@@ -132,6 +133,17 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                               <span className="text-white/60 whitespace-nowrap ml-2">
                                 ${s.costo_mensual.toLocaleString()}
                               </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {tareasCliente.length > 0 && (
+                        <div className="bg-orange-500/20 border border-orange-500/40 rounded-lg px-3 py-2 mb-3 space-y-1">
+                          {tareasCliente.map((tarea) => (
+                            <div key={tarea.id} className="text-orange-200 text-sm flex items-start gap-2">
+                              <span>📌</span>
+                              <span>{tarea.descripcion}</span>
                             </div>
                           ))}
                         </div>

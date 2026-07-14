@@ -844,5 +844,85 @@ export const streamingHelpers = {
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
+  },
+
+  // ============================================
+  // TAREAS DE STREAMING (pendientes/recordatorios)
+  // ============================================
+
+  async getTareas() {
+    const { data, error } = await supabase
+      .from('tareas_streaming')
+      .select(`
+        *,
+        cliente:clientes_streaming(*),
+        cuenta:cuentas_streaming(*)
+      `)
+      .order('completada', { ascending: true })
+      .order('fecha_creacion', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addTarea(tarea: {
+    descripcion: string;
+    cliente_id?: number | null;
+    cuenta_id?: number | null;
+  }) {
+    const { data, error } = await supabase
+      .from('tareas_streaming')
+      .insert([tarea])
+      .select(`
+        *,
+        cliente:clientes_streaming(*),
+        cuenta:cuentas_streaming(*)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async completarTarea(id: number) {
+    const hoy = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('tareas_streaming')
+      .update({ completada: true, fecha_completada: hoy })
+      .eq('id', id)
+      .select(`
+        *,
+        cliente:clientes_streaming(*),
+        cuenta:cuentas_streaming(*)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async reabrirTarea(id: number) {
+    const { data, error } = await supabase
+      .from('tareas_streaming')
+      .update({ completada: false, fecha_completada: null })
+      .eq('id', id)
+      .select(`
+        *,
+        cliente:clientes_streaming(*),
+        cuenta:cuentas_streaming(*)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async eliminarTarea(id: number) {
+    const { error } = await supabase
+      .from('tareas_streaming')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 };

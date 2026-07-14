@@ -9,8 +9,9 @@ import { ClientesTab } from './ClientesTab';
 import { SuscripcionesTab } from './SuscripcionesTab';
 import { CobrosTab } from './CobrosTab';
 import { CostosTab } from './CostosTab';
+import { TareasTab } from './TareasTab';
 
-type TabId = 'resumen' | 'cuentas' | 'clientes' | 'suscripciones' | 'cobros' | 'costos';
+type TabId = 'resumen' | 'cuentas' | 'clientes' | 'suscripciones' | 'cobros' | 'costos' | 'tareas';
 
 interface Tab {
   id: TabId;
@@ -24,7 +25,8 @@ const tabs: Tab[] = [
   { id: 'clientes', label: 'Clientes', icon: '👥' },
   { id: 'suscripciones', label: 'Suscripciones', icon: '📝' },
   { id: 'cobros', label: 'Cobros', icon: '💰' },
-  { id: 'costos', label: 'Costos', icon: '💸' }
+  { id: 'costos', label: 'Costos', icon: '💸' },
+  { id: 'tareas', label: 'Tareas', icon: '📌' }
 ];
 
 export const StreamingDashboard = () => {
@@ -90,6 +92,7 @@ export const StreamingDashboard = () => {
           {activeTab === 'suscripciones' && <SuscripcionesTab streaming={streaming} />}
           {activeTab === 'cobros' && <CobrosTab streaming={streaming} mesActivo={mesActivo} />}
           {activeTab === 'costos' && <CostosTab streaming={streaming} mesActivo={mesActivo} />}
+          {activeTab === 'tareas' && <TareasTab streaming={streaming} />}
         </div>
       </div>
     </div>

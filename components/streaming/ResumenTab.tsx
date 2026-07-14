@@ -8,6 +8,7 @@ interface ResumenTabProps {
 
 export const ResumenTab = ({ streaming }: ResumenTabProps) => {
   const metricas = streaming.calcularMetricas();
+  const tareasPendientes = streaming.tareas.filter(t => !t.completada);
 
   const formatoMoneda = (valor: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -68,7 +69,7 @@ export const ResumenTab = ({ streaming }: ResumenTabProps) => {
       </div>
 
       {/* Pendientes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Cobros Pendientes */}
         <div className="bg-yellow-500/20 border-2 border-yellow-500 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
@@ -92,7 +93,7 @@ export const ResumenTab = ({ streaming }: ResumenTabProps) => {
         <div className="bg-purple-500/20 border-2 border-purple-500 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-purple-300 text-sm font-medium">Pagos Pendientes</span>
-            <span className="text-2xl">📌</span>
+            <span className="text-2xl">🧾</span>
           </div>
           <div className="flex items-baseline gap-3">
             <div className="text-3xl font-bold text-white">
@@ -104,6 +105,20 @@ export const ResumenTab = ({ streaming }: ResumenTabProps) => {
           </div>
           <div className="text-xs text-white/60 mt-1">
             Servicios por pagar
+          </div>
+        </div>
+
+        {/* Tareas Pendientes */}
+        <div className="bg-orange-500/20 border-2 border-orange-500 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-orange-300 text-sm font-medium">Tareas Pendientes</span>
+            <span className="text-2xl">📌</span>
+          </div>
+          <div className="text-3xl font-bold text-white">
+            {tareasPendientes.length}
+          </div>
+          <div className="text-xs text-white/60 mt-1">
+            Cambios/recordatorios por hacer
           </div>
         </div>
       </div>

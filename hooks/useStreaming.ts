@@ -72,6 +72,19 @@ export interface CostoStreaming {
   cuenta?: CuentaStreaming;
 }
 
+export interface TareaStreaming {
+  id: number;
+  descripcion: string;
+  cliente_id: number | null;
+  cuenta_id: number | null;
+  completada: boolean;
+  fecha_creacion: string;
+  fecha_completada: string | null;
+  created_at: string;
+  cliente?: ClienteStreaming;
+  cuenta?: CuentaStreaming;
+}
+
 export interface MetricasStreaming {
   totalCobrado: number;
   totalGastado: number;
@@ -94,6 +107,7 @@ export const useStreaming = (mesActivo: string) => {
   const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([]);
   const [pagos, setPagos] = useState<PagoStreaming[]>([]);
   const [costos, setCostos] = useState<CostoStreaming[]>([]);
+  const [tareas, setTareas] = useState<TareaStreaming[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,12 +120,13 @@ export const useStreaming = (mesActivo: string) => {
       setLoading(true);
       setError(null);
 
-      const [cuentasData, clientesData, suscripcionesData, pagosData, costosData] = await Promise.all([
+      const [cuentasData, clientesData, suscripcionesData, pagosData, costosData, tareasData] = await Promise.all([
         streamingHelpers.getCuentas(),
         streamingHelpers.getClientes(),
         streamingHelpers.getSuscripciones(),
         streamingHelpers.getPagos(mesActivo),
-        streamingHelpers.getCostos(mesActivo)
+        streamingHelpers.getCostos(mesActivo),
+        streamingHelpers.getTareas()
       ]);
 
       setCuentas(cuentasData);
@@ -119,6 +134,7 @@ export const useStreaming = (mesActivo: string) => {
       setSuscripciones(suscripcionesData);
       setPagos(pagosData);
       setCostos(costosData);
+      setTareas(tareasData);
     } catch (err) {
       console.error('Error loading streaming data:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -352,6 +368,61 @@ export const useStreaming = (mesActivo: string) => {
   };
 
   // ============================================
+  // FUNCIONES DE TAREAS (pendientes/recordatorios)
+  // ============================================
+
+  const agregarTarea = async (tarea: {
+    descripcion: string;
+    cliente_id?: number | null;
+    cuenta_id?: number | null;
+  }) => {
+    try {
+      const nueva = await streamingHelpers.addTarea(tarea);
+      setTareas(prev => [nueva, ...prev]);
+      return nueva;
+    } catch (err) {
+      console.error('Error agregando tarea:', err);
+      throw err;
+    }
+  };
+
+  const completarTarea = async (id: number) => {
+    try {
+      const actualizada = await streamingHelpers.completarTarea(id);
+      setTareas(prev => prev.map(t => t.id === id ? actualizada : t));
+      return actualizada;
+    } catch (err) {
+      console.error('Error completando tarea:', err);
+      throw err;
+    }
+  };
+
+  const reabrirTarea = async (id: number) => {
+    try {
+      const actualizada = await streamingHelpers.reabrirTarea(id);
+      setTareas(prev => prev.map(t => t.id === id ? actualizada : t));
+      return actualizada;
+    } catch (err) {
+      console.error('Error reabriendo tarea:', err);
+      throw err;
+    }
+  };
+
+  const eliminarTarea = async (id: number) => {
+    try {
+      await streamingHelpers.eliminarTarea(id);
+      setTareas(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      console.error('Error eliminando tarea:', err);
+      throw err;
+    }
+  };
+
+  const getTareasPendientesDeCliente = useCallback((clienteId: number): TareaStreaming[] => {
+    return tareas.filter(t => t.cliente_id === clienteId && !t.completada);
+  }, [tareas]);
+
+  // ============================================
   // MÉTRICAS Y CÁLCULOS
   // ============================================
 
@@ -449,6 +520,7 @@ export const useStreaming = (mesActivo: string) => {
     suscripciones,
     pagos,
     costos,
+    tareas,
     loading,
     error,
 
@@ -471,6 +543,13 @@ export const useStreaming = (mesActivo: string) => {
     // Funciones de cobros y costos
     cobrarPago,
     pagarCosto,
+
+    // Funciones de tareas
+    agregarTarea,
+    completarTarea,
+    reabrirTarea,
+    eliminarTarea,
+    getTareasPendientesDeCliente,
 
     // Utilidades y cálculos
     calcularMetricas,
