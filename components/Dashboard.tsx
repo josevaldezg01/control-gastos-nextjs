@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Card, Button, Loading } from '@/components/ui';
 import { useGastos } from '@/hooks/useGastos';
+import { supabase } from '@/lib/supabase';
 import { formatoMoneda } from '@/lib/utils';
 import { SaldosBancos } from './SaldosBancos';
 import { GraficosEstadisticas } from './GraficosEstadisticas';
@@ -172,6 +173,16 @@ export const Dashboard: React.FC = () => {
                 className="bg-indigo-500/40 backdrop-blur-sm border border-indigo-300/40 text-white hover:bg-indigo-500/60 transition-all duration-300"
               >
                 🗺️ Europa
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.replace('/login');
+                }}
+                className="bg-red-500/20 backdrop-blur-sm border border-red-300/30 text-white hover:bg-red-500/40 transition-all duration-300"
+              >
+                🔒 Salir
               </Button>
             </div>
           </div>

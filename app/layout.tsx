@@ -1,5 +1,6 @@
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
+import { AuthGuard } from '@/components/AuthGuard'
 
 export const metadata = {
   title: 'Control de Gastos',
@@ -14,8 +15,8 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        {children}
-        <Toaster 
+        <AuthGuard>{children}</AuthGuard>
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 3000,
