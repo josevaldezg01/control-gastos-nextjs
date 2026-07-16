@@ -95,6 +95,11 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                           <div className="text-white font-semibold text-lg">
                             {primera.cliente?.nombre}
                           </div>
+                          {primera.cliente?.telefono && (
+                            <div className="text-green-300 text-sm font-mono">
+                              📱 {primera.cliente.telefono}
+                            </div>
+                          )}
                           {!esGrupo && (
                             <>
                               <div className="text-white/60 text-sm">
@@ -200,6 +205,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
               <thead className="bg-white/10">
                 <tr>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Cliente</th>
+                  <th className="text-left text-white/80 px-4 py-3 text-sm">Teléfono</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Servicio</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Cuenta (email)</th>
                   <th className="text-left text-white/80 px-4 py-3 text-sm">Monto</th>
@@ -216,6 +222,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                     }`}
                   >
                     <td className="px-4 py-3 text-white">{pago.cliente?.nombre}</td>
+                    <td className="px-4 py-3 text-green-300 font-mono text-xs">{pago.cliente?.telefono || '—'}</td>
                     <td className="px-4 py-3 text-white/80">{pago.servicio}</td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {pago.suscripcion?.email_acceso ? (
