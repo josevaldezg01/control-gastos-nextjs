@@ -33,6 +33,39 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
     return `$${valor.toLocaleString()}`;
   };
 
+  // Un solo recordatorio por cliente/cobro, aunque tenga varios servicios agrupados:
+  // se marca en todas las suscripciones del grupo a la vez.
+  const RecordatorioBadge = ({ grupo }: { grupo: Suscripcion[] }) => {
+    const fechaEnviado = grupo
+      .map(s => s.fecha_recordatorio)
+      .filter((f): f is string => !!f)
+      .sort()
+      .pop();
+
+    if (fechaEnviado) {
+      return (
+        <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-xs whitespace-nowrap">
+          📧 Enviado {new Date(fechaEnviado).toLocaleDateString()}
+        </span>
+      );
+    }
+    return (
+      <button
+        onClick={async () => {
+          try {
+            await Promise.all(grupo.map(s => streaming.marcarRecordatorio(s.id)));
+          } catch (error) {
+            alert('Error al marcar recordatorio');
+          }
+        }}
+        className="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded text-xs hover:bg-yellow-500/30 transition-all whitespace-nowrap"
+        title="Marcar recordatorio como enviado"
+      >
+        ⚪ Enviar recordatorio
+      </button>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -174,6 +207,10 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                           }`}>
                             {diasAtraso} días
                           </div>
+                        </div>
+                        <div>
+                          <div className="text-white/60 text-sm">Recordatorio</div>
+                          <RecordatorioBadge grupo={grupo} />
                         </div>
                       </div>
                     </div>

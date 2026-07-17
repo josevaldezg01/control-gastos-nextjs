@@ -84,7 +84,6 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
                   {filtroEstado === 'inactivas' ? 'Fecha fin' : 'Próximo cobro'}
                 </th>
                 <th className="text-left text-white/80 px-4 py-3 text-sm">Estado</th>
-                <th className="text-left text-white/80 px-4 py-3 text-sm">Recordatorio</th>
                 <th className="text-left text-white/80 px-4 py-3 text-sm">Acciones</th>
               </tr>
             </thead>
@@ -141,40 +140,6 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
                         <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded text-xs">
                           ❌ Inactiva
                         </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {suscripcion.activa ? (
-                        pendiente ? (
-                          suscripcion.fecha_recordatorio ? (
-                            <div className="text-center">
-                              <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-xs block mb-1">
-                                📧 Enviado
-                              </span>
-                              <span className="text-white/40 text-xs">
-                                {new Date(suscripcion.fecha_recordatorio).toLocaleDateString()}
-                              </span>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await streaming.marcarRecordatorio(suscripcion.id);
-                                } catch (error) {
-                                  alert('Error al marcar recordatorio');
-                                }
-                              }}
-                              className="bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded text-xs hover:bg-yellow-500/30 transition-all"
-                              title="Marcar recordatorio como enviado"
-                            >
-                              ⚪ Enviar
-                            </button>
-                          )
-                        ) : (
-                          <span className="text-white/40 text-xs">-</span>
-                        )
-                      ) : (
-                        <span className="text-white/40 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
