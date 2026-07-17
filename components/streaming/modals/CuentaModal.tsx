@@ -27,6 +27,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
   const [diaPago, setDiaPago] = useState(cuenta?.dia_pago?.toString() || '');
   const [email, setEmail] = useState(cuenta?.email || '');
   const [notas, setNotas] = useState(cuenta?.notas || '');
+  const [activa, setActiva] = useState(cuenta ? cuenta.activa : true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -56,7 +57,8 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
         costo_mensual: parseFloat(costoMensual),
         dia_pago: diaPago ? parseInt(diaPago) : null,
         email: email.trim(),
-        notas: notas || null
+        notas: notas || null,
+        activa
       };
 
       await onGuardar(datosCuenta);
@@ -172,6 +174,29 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
               className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none resize-none"
               rows={3}
             />
+          </div>
+
+          {/* Activa / Inactiva */}
+          <div className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
+            <div>
+              <div className="text-white/80 text-sm font-medium">Cuenta activa</div>
+              <p className="text-white/40 text-xs mt-0.5">
+                Desactívala cuando se quede sin clientes: deja de aparecer como pendiente de pago, pero se conserva para reusarla después.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiva(!activa)}
+              className={`shrink-0 ml-3 w-14 h-8 rounded-full transition-all relative ${
+                activa ? 'bg-green-500' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${
+                  activa ? 'left-7' : 'left-1'
+                }`}
+              />
+            </button>
           </div>
 
           {/* Botones */}

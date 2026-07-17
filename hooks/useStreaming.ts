@@ -200,16 +200,6 @@ export const useStreaming = (mesActivo: string) => {
     }
   };
 
-  const eliminarCuenta = async (id: number) => {
-    try {
-      await streamingHelpers.deleteCuenta(id);
-      setCuentas(prev => prev.filter(c => c.id !== id));
-    } catch (err) {
-      console.error('Error eliminando cuenta:', err);
-      throw err;
-    }
-  };
-
   // ============================================
   // FUNCIONES DE CLIENTES
   // ============================================
@@ -578,7 +568,6 @@ export const useStreaming = (mesActivo: string) => {
     // Funciones de cuentas
     agregarCuenta,
     actualizarCuenta,
-    eliminarCuenta,
 
     // Funciones de clientes
     agregarCliente,

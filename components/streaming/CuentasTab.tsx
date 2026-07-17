@@ -23,11 +23,15 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
   const [mostrandoModal, setMostrandoModal] = useState(false);
   const [cuentaEditando, setCuentaEditando] = useState<any>(null);
   const [filtroServicio, setFiltroServicio] = useState<string>('todos');
+  const [filtroEstado, setFiltroEstado] = useState<'activas' | 'inactivas' | 'todas'>('activas');
   const [cuentaParaTarea, setCuentaParaTarea] = useState<number | null>(null);
 
-  const cuentasFiltradas = filtroServicio === 'todos'
-    ? streaming.cuentas
-    : streaming.cuentas.filter(c => c.servicio === filtroServicio);
+  const cuentasFiltradas = streaming.cuentas
+    .filter(c => filtroServicio === 'todos' || c.servicio === filtroServicio)
+    .filter(c => filtroEstado === 'todas' || (filtroEstado === 'activas' ? c.activa : !c.activa));
+
+  const cuentasActivasCount = streaming.cuentas.filter(c => c.activa).length;
+  const cuentasInactivasCount = streaming.cuentas.filter(c => !c.activa).length;
 
   const formatoMoneda = (valor: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -92,12 +96,46 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
         })}
       </div>
 
+      {/* Filtro por estado */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setFiltroEstado('activas')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            filtroEstado === 'activas'
+              ? 'bg-blue-500 text-white'
+              : 'bg-white/10 text-white/60 hover:bg-white/20'
+          }`}
+        >
+          Activas ({cuentasActivasCount})
+        </button>
+        <button
+          onClick={() => setFiltroEstado('inactivas')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            filtroEstado === 'inactivas'
+              ? 'bg-gray-500 text-white'
+              : 'bg-white/10 text-white/60 hover:bg-white/20'
+          }`}
+        >
+          Inactivas ({cuentasInactivasCount})
+        </button>
+        <button
+          onClick={() => setFiltroEstado('todas')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            filtroEstado === 'todas'
+              ? 'bg-purple-500 text-white'
+              : 'bg-white/10 text-white/60 hover:bg-white/20'
+          }`}
+        >
+          Todas ({streaming.cuentas.length})
+        </button>
+      </div>
+
       {/* Lista de cuentas */}
       {cuentasFiltradas.length === 0 ? (
         <div className="bg-white/5 rounded-lg p-12 text-center">
           <div className="text-6xl mb-4">🎬</div>
           <p className="text-white/60 text-lg">
-            {streaming.cuentas.length === 0 ? 'No hay cuentas registradas' : 'No hay cuentas de este servicio'}
+            {streaming.cuentas.length === 0 ? 'No hay cuentas registradas' : 'No hay cuentas en este filtro'}
           </p>
           {streaming.cuentas.length === 0 && (
             <p className="text-white/40 text-sm mt-2">Agrega tu primera cuenta de streaming</p>
@@ -243,13 +281,19 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm('¿Eliminar esta cuenta?')) {
-                        streaming.eliminarCuenta(cuenta.id);
+                      const accion = cuenta.activa ? 'desactivar' : 'activar';
+                      if (confirm(`¿Seguro que quieres ${accion} esta cuenta?`)) {
+                        streaming.actualizarCuenta(cuenta.id, { activa: !cuenta.activa });
                       }
                     }}
-                    className="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-3 py-2 rounded text-sm font-medium transition-all"
+                    className={`px-3 py-2 rounded text-sm font-medium transition-all ${
+                      cuenta.activa
+                        ? 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-300'
+                        : 'bg-green-500/20 hover:bg-green-500/30 text-green-300'
+                    }`}
+                    title={cuenta.activa ? 'Desactivar cuenta' : 'Activar cuenta'}
                   >
-                    🗑️
+                    {cuenta.activa ? '🔌 Desactivar' : '🔋 Activar'}
                   </button>
                 </div>
 

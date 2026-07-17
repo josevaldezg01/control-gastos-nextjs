@@ -330,15 +330,6 @@ export const streamingHelpers = {
     return data;
   },
 
-  async deleteCuenta(id: number) {
-    const { error } = await supabase
-      .from('cuentas_streaming')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  },
-
   // ============================================
   // CLIENTES DE STREAMING
   // ============================================
