@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGastos } from '@/hooks/useGastos';
 import { useStreaming } from '@/hooks/useStreaming';
 import { ResumenTab } from './ResumenTab';
@@ -30,6 +31,7 @@ const tabs: Tab[] = [
 ];
 
 export const StreamingDashboard = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('resumen');
   const { mesActivo } = useGastos();
   const streaming = useStreaming(mesActivo);
@@ -54,7 +56,13 @@ export const StreamingDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="relative text-center mb-8">
+          <button
+            onClick={() => router.push('/')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
+          >
+            ← Control de Gastos
+          </button>
           <h1 className="text-4xl font-bold text-white drop-shadow-lg mb-2">
             🎬 Gestión de Streaming
           </h1>

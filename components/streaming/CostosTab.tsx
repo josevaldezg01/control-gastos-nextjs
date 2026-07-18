@@ -239,6 +239,14 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                           </div>
                         </div>
                       ) : null}
+                      {!esNetflix && cuenta.tarjeta_vinculada && (
+                        <div>
+                          <div className="text-white/60 text-sm">Tarjeta vinculada</div>
+                          <div className="text-white font-mono">
+                            💳 {cuenta.tarjeta_vinculada}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {esNetflix && (

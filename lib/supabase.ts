@@ -306,6 +306,7 @@ export const streamingHelpers = {
     dia_pago?: number;
     extras?: any;
     email?: string;
+    tarjeta_vinculada?: string;
     notas?: string;
   }) {
     const { data, error } = await supabase

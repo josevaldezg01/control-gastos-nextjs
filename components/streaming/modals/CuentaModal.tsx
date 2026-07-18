@@ -26,6 +26,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
   const [costoMensual, setCostoMensual] = useState(cuenta?.costo_mensual?.toString() || '');
   const [diaPago, setDiaPago] = useState(cuenta?.dia_pago?.toString() || '');
   const [email, setEmail] = useState(cuenta?.email || '');
+  const [tarjetaVinculada, setTarjetaVinculada] = useState(cuenta?.tarjeta_vinculada || '');
   const [notas, setNotas] = useState(cuenta?.notas || '');
   const [activa, setActiva] = useState(cuenta ? cuenta.activa : true);
   const [guardando, setGuardando] = useState(false);
@@ -57,6 +58,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
         costo_mensual: parseFloat(costoMensual),
         dia_pago: diaPago ? parseInt(diaPago) : null,
         email: email.trim(),
+        tarjeta_vinculada: servicio !== 'Netflix' ? (tarjetaVinculada.trim() || null) : null,
         notas: notas || null,
         activa
       };
@@ -111,6 +113,23 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
             />
             <p className="text-white/40 text-xs mt-1">Identificador único para diferenciar cuentas del mismo servicio</p>
           </div>
+
+          {/* Tarjeta vinculada (solo no-Netflix) */}
+          {servicio !== 'Netflix' && (
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">
+                Tarjeta / cuenta vinculada
+              </label>
+              <input
+                type="text"
+                value={tarjetaVinculada}
+                onChange={(e) => setTarjetaVinculada(e.target.value)}
+                placeholder="Ej: Daviplata Jose 9466"
+                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              />
+              <p className="text-white/40 text-xs mt-1">Con qué tarjeta/cuenta se cobra automáticamente esta suscripción</p>
+            </div>
+          )}
 
           {/* Tipo de Cuenta */}
           <div>

@@ -221,6 +221,13 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                   </div>
                 ) : null}
 
+                {/* Tarjeta vinculada (no-Netflix) */}
+                {cuenta.servicio !== 'Netflix' && cuenta.tarjeta_vinculada && (
+                  <div className="text-white/60 text-sm mb-3 font-mono">
+                    💳 {cuenta.tarjeta_vinculada}
+                  </div>
+                )}
+
                 {/* Ocupación */}
                 <div className="mb-3">
                   <div className="flex justify-between text-xs text-white/60 mb-1">

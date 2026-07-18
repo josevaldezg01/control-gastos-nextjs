@@ -15,6 +15,7 @@ export interface CuentaStreaming {
   pin_pendiente_codigo: string | null;
   pin_pendiente_valor: number | null;
   proxima_recarga: string | null;
+  tarjeta_vinculada: string | null;
   created_at: string;
 }
 
@@ -177,6 +178,7 @@ export const useStreaming = (mesActivo: string) => {
     dia_pago?: number;
     extras?: any;
     email?: string;
+    tarjeta_vinculada?: string;
     notas?: string;
   }) => {
     try {
