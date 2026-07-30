@@ -222,7 +222,7 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
               className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
               required
               min="0"
-              step="100"
+              step="1"
             />
           </div>
 
