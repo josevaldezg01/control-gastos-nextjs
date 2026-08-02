@@ -939,3 +939,142 @@ export const streamingHelpers = {
     if (error) throw error;
   }
 };
+
+// ============================================
+// RATER (evaluador de resultados de búsqueda por hora)
+// ============================================
+export const raterHelpers = {
+  async getConfig() {
+    const { data, error } = await supabase
+      .from('rater_config')
+      .select('*')
+      .eq('id', 1)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateConfig(updates: { tarifa_hora_usd?: number; tasa_cambio?: number }) {
+    const { data, error } = await supabase
+      .from('rater_config')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', 1)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getTareasPorFecha(fecha: string) {
+    const { data, error } = await supabase
+      .from('rater_tareas')
+      .select('*')
+      .eq('fecha', fecha)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getTareasPorRango(desde: string, hasta: string) {
+    const { data, error } = await supabase
+      .from('rater_tareas')
+      .select('id, fecha, minutos, ganancia_usd, ganancia_cop')
+      .gte('fecha', desde)
+      .lte('fecha', hasta);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addTarea(tarea: {
+    fecha: string;
+    titulo: string;
+    minutos: number;
+    tarifa_hora_usd: number;
+    tasa_cambio: number;
+  }) {
+    const { data, error } = await supabase
+      .from('rater_tareas')
+      .insert([tarea])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateTarea(id: number, updates: { titulo?: string; minutos?: number }) {
+    const { data, error } = await supabase
+      .from('rater_tareas')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteTarea(id: number) {
+    const { error } = await supabase
+      .from('rater_tareas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async getHistoricoAnual() {
+    const { data, error } = await supabase
+      .from('rater_historico_anual')
+      .select('*')
+      .order('anio', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async cerrarAnio(anio: number) {
+    const desde = `${anio}-01-01`;
+    const hasta = `${anio}-12-31`;
+
+    const { data: tareas, error: errorTareas } = await supabase
+      .from('rater_tareas')
+      .select('id, minutos, ganancia_usd, ganancia_cop')
+      .gte('fecha', desde)
+      .lte('fecha', hasta);
+
+    if (errorTareas) throw errorTareas;
+
+    const totalMinutos = (tareas || []).reduce((sum, t) => sum + t.minutos, 0);
+    const totalUsd = (tareas || []).reduce((sum, t) => sum + t.ganancia_usd, 0);
+    const totalCop = (tareas || []).reduce((sum, t) => sum + t.ganancia_cop, 0);
+
+    const { data: historico, error: errorHistorico } = await supabase
+      .from('rater_historico_anual')
+      .insert([{
+        anio,
+        total_minutos: totalMinutos,
+        total_tareas: (tareas || []).length,
+        total_ganancia_usd: totalUsd,
+        total_ganancia_cop: totalCop
+      }])
+      .select()
+      .single();
+
+    if (errorHistorico) throw errorHistorico;
+
+    const { error: errorDelete } = await supabase
+      .from('rater_tareas')
+      .delete()
+      .gte('fecha', desde)
+      .lte('fecha', hasta);
+
+    if (errorDelete) throw errorDelete;
+
+    return historico;
+  }
+};

@@ -176,6 +176,13 @@ export const Dashboard: React.FC = () => {
               </Button>
               <Button
                 variant="secondary"
+                onClick={() => router.push('/rater')}
+                className="bg-emerald-500/30 backdrop-blur-sm border border-emerald-300/30 text-white hover:bg-emerald-500/40 transition-all duration-300"
+              >
+                🎯 Rater
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={async () => {
                   await supabase.auth.signOut();
                   router.replace('/login');
