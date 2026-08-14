@@ -579,11 +579,6 @@ console.log('🔵 Intentando pagar:', {
   todosLosBancos: bancos
 });
 
-    // Validar saldo suficiente
-    if (valorPago > bancos[bancoDestino]) {
-      throw new Error(`Saldo insuficiente en ${bancoDestino}`);
-    }
-
     const fecha = new Date().toISOString();
 
     // 1️⃣ ACTUALIZAR ESTADO LOCAL INMEDIATAMENTE
