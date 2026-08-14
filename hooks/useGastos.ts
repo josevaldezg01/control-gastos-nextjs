@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { dbHelpers } from '@/lib/supabase';
-import { obtenerInfoMesActivo, formatoMoneda } from '@/lib/utils';
+import { obtenerInfoMesActivo } from '@/lib/utils';
 import type { 
   Banco, 
   Movimiento, 
@@ -242,10 +242,6 @@ useEffect(() => {
     categoria: string
   ) => {
     try {
-      if (valor > bancos[banco]) {
-        throw new Error(`Saldo insuficiente en ${banco}`);
-      }
-
       // 1. Actualizar inmediatamente
       const fecha = new Date().toISOString();
       const nuevoMovimiento: Movimiento = {
@@ -296,10 +292,6 @@ useEffect(() => {
     descripcion: string
   ) => {
     try {
-      if (valor > bancos[bancoOrigen]) {
-        throw new Error(`Saldo insuficiente en ${bancoOrigen}`);
-      }
-
       // 1. Actualizar inmediatamente
       const fecha = new Date().toISOString();
       const nuevoMovimiento: Movimiento = {
@@ -350,16 +342,8 @@ const registrarPrestamo = useCallback(async (
   descripcion: string
 ) => {
   try {
-    // Si es "Por recibir", NO validar saldo ni descontar de ningún banco
+    // Si es "Por recibir", NO descontar de ningún banco
     const esPorRecibir = bancoOrigen === 'Por recibir';
-
-    if (!esPorRecibir) {
-      // Validar saldo suficiente solo si NO es "Por recibir"
-      if (valor > bancos[bancoOrigen]) {
-        toast.error(`Saldo insuficiente en ${bancoOrigen}. Tiene: ${formatoMoneda(bancos[bancoOrigen])}, Necesita: ${formatoMoneda(valor)}`);
-        return; // ← Salir sin hacer nada, no lanzar error
-      }
-    }
 
       const fecha = new Date().toISOString();
 
