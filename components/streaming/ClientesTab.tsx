@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { CirclePlus } from 'lucide-react';
 import { useStreaming, CuentaStreaming } from '@/hooks/useStreaming';
 import { ClienteModal } from './modals/ClienteModal';
 import { DetalleCuentaModal } from './modals/DetalleCuentaModal';
 import { TareaModal } from './modals/TareaModal';
+import { SuscripcionModal } from './modals/SuscripcionModal';
 
 interface ClientesTabProps {
   streaming: ReturnType<typeof useStreaming>;
@@ -15,6 +17,7 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
   const [clienteEditando, setClienteEditando] = useState<any>(null);
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState<CuentaStreaming | null>(null);
   const [clienteParaTarea, setClienteParaTarea] = useState<number | null>(null);
+  const [clienteParaServicio, setClienteParaServicio] = useState<number | null>(null);
   const [filtroClientes, setFiltroClientes] = useState<'con_servicios' | 'sin_servicios' | 'todos'>('con_servicios');
 
   const tieneServiciosActivos = (clienteId: number) =>
@@ -119,6 +122,13 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-2xl">👤</span>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setClienteParaServicio(cliente.id)}
+                      className="text-emerald-400 hover:text-emerald-300 px-2 py-1 hover:bg-emerald-500/10 rounded transition-all"
+                      title="Amarrar servicio de streaming"
+                    >
+                      <CirclePlus className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => setClienteParaTarea(cliente.id)}
                       className="text-orange-300 hover:text-orange-200 text-sm px-2 py-1 hover:bg-orange-500/10 rounded transition-all"
@@ -251,6 +261,18 @@ export const ClientesTab = ({ streaming }: ClientesTabProps) => {
           streaming={streaming}
           clienteIdPreset={clienteParaTarea}
           onClose={() => setClienteParaTarea(null)}
+        />
+      )}
+
+      {/* Modal de Suscripción (amarrar servicio) */}
+      {clienteParaServicio !== null && (
+        <SuscripcionModal
+          streaming={streaming}
+          clienteIdPreset={clienteParaServicio}
+          onClose={() => setClienteParaServicio(null)}
+          onGuardar={async (datos) => {
+            await streaming.asignarSuscripcion(datos);
+          }}
         />
       )}
     </div>

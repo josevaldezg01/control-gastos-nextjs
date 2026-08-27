@@ -190,7 +190,11 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
           }}
           onGuardar={async (datos, id) => {
             if (id) {
-              await streaming.actualizarSuscripcion(id, datos);
+              if (suscripcionEditando && !suscripcionEditando.activa) {
+                await streaming.reactivarSuscripcion(id, datos);
+              } else {
+                await streaming.actualizarSuscripcion(id, datos);
+              }
             } else {
               await streaming.asignarSuscripcion(datos);
             }

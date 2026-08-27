@@ -294,7 +294,7 @@ export const Dashboard: React.FC = () => {
               <div className="w-14 h-14 bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <TrendingUp className="w-7 h-7 text-white" />
               </div>
-              <Sparkles className="w-6 h-6 text-green-300 opacity-60" />
+              <Sparkles className="w-6 h-6 text-white/70" />
             </div>
             <div className="relative">
               <h3 className="font-bold text-green-200 text-lg mb-2">Ingresos Totales</h3>
@@ -310,7 +310,7 @@ export const Dashboard: React.FC = () => {
               <div className="w-14 h-14 bg-gradient-to-r from-red-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <TrendingDown className="w-7 h-7 text-white" />
               </div>
-              <Sparkles className="w-6 h-6 text-red-300 opacity-60" />
+              <Sparkles className="w-6 h-6 text-white/70" />
             </div>
             <div className="relative">
               <h3 className="font-bold text-red-200 text-lg mb-2">Gastos Totales</h3>
@@ -326,7 +326,7 @@ export const Dashboard: React.FC = () => {
               <div className="w-14 h-14 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <Scale className="w-7 h-7 text-white" />
               </div>
-              <Sparkles className="w-6 h-6 text-blue-300 opacity-60" />
+              <Sparkles className="w-6 h-6 text-white/70" />
             </div>
             <div className="relative">
               <h3 className="font-bold text-blue-200 text-lg mb-2">Balance Total</h3>

@@ -529,6 +529,26 @@ export const streamingHelpers = {
     return data;
   },
 
+  async reactivarSuscripcion(id: number, updates: any) {
+    const { data, error } = await supabase
+      .from('suscripciones')
+      .update({
+        ...updates,
+        activa: true,
+        fecha_fin: null
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        cuenta:cuentas_streaming(*),
+        cliente:clientes_streaming(*)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async updateProximoCobro(suscripcionId: number) {
     // Obtener suscripción actual
     const { data: suscripcion, error: errorGet } = await supabase

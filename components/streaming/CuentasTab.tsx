@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useStreaming } from '@/hooks/useStreaming';
+import { useStreaming, Suscripcion } from '@/hooks/useStreaming';
 import { CuentaModal } from './modals/CuentaModal';
 import { TareaModal } from './modals/TareaModal';
+import { SuscripcionModal } from './modals/SuscripcionModal';
 
 interface CuentasTabProps {
   streaming: ReturnType<typeof useStreaming>;
@@ -25,6 +26,7 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
   const [filtroServicio, setFiltroServicio] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<'activas' | 'inactivas' | 'todas'>('activas');
   const [cuentaParaTarea, setCuentaParaTarea] = useState<number | null>(null);
+  const [suscripcionEditando, setSuscripcionEditando] = useState<Suscripcion | null>(null);
 
   const cuentasFiltradas = streaming.cuentas
     .filter(c => filtroServicio === 'todos' || c.servicio === filtroServicio)
@@ -253,16 +255,41 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                   <div className="mb-3 space-y-1">
                     <div className="text-white/60 text-xs mb-1">Clientes</div>
                     {clientesDeCuenta.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between text-xs bg-white/5 px-2 py-1 rounded">
-                        <span className="text-white/80 truncate">
+                      <div key={s.id} className="flex items-center justify-between text-xs bg-white/5 px-2 py-1 rounded gap-2">
+                        <span className="text-white/80 truncate min-w-0">
                           {s.cliente?.nombre}
+                          <span className="text-white/40 block text-[10px]">{s.tipo_acceso}</span>
                           {s.email_acceso && (
                             <span className="text-purple-300 font-mono block text-[10px] truncate">
                               ✉️ {s.email_acceso}
                             </span>
                           )}
                         </span>
-                        <span className="text-white/60 ml-2 whitespace-nowrap">${s.costo_mensual.toLocaleString()}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-white/60 whitespace-nowrap">${s.costo_mensual.toLocaleString()}</span>
+                          <button
+                            onClick={() => setSuscripcionEditando(s)}
+                            className="text-blue-300 hover:text-blue-200"
+                            title="Editar cliente de este espacio"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`¿Quitar a ${s.cliente?.nombre} de ${s.tipo_acceso} en esta cuenta?`)) {
+                                try {
+                                  await streaming.cancelarSuscripcion(s.id);
+                                } catch (error) {
+                                  alert('Error al quitar el cliente de este espacio');
+                                }
+                              }
+                            }}
+                            className="text-red-300 hover:text-red-200"
+                            title="Quitar cliente de este espacio"
+                          >
+                            ❌
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -348,6 +375,20 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
           streaming={streaming}
           cuentaIdPreset={cuentaParaTarea}
           onClose={() => setCuentaParaTarea(null)}
+        />
+      )}
+
+      {/* Modal de edición de cliente en un espacio */}
+      {suscripcionEditando && (
+        <SuscripcionModal
+          streaming={streaming}
+          suscripcion={suscripcionEditando}
+          onClose={() => setSuscripcionEditando(null)}
+          onGuardar={async (datos, id) => {
+            if (id) {
+              await streaming.actualizarSuscripcion(id, datos);
+            }
+          }}
         />
       )}
     </div>

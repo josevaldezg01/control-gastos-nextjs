@@ -288,6 +288,17 @@ export const useStreaming = (mesActivo: string) => {
     }
   };
 
+  const reactivarSuscripcion = async (id: number, updates: Partial<Suscripcion>) => {
+    try {
+      const reactivada = await streamingHelpers.reactivarSuscripcion(id, updates);
+      setSuscripciones(prev => prev.map(s => s.id === id ? reactivada : s));
+      return reactivada;
+    } catch (err) {
+      console.error('Error reactivando suscripción:', err);
+      throw err;
+    }
+  };
+
   // ============================================
   // FUNCIONES DE COBROS
   // ============================================
@@ -503,9 +514,11 @@ export const useStreaming = (mesActivo: string) => {
     let total = 0;
     const tipoCuenta = cuenta.tipo_cuenta.toLowerCase();
 
+    // Netflix permite además "miembros extra" (login propio) sobre el plan de pantallas:
+    // 2 pantallas admite 1 extra, 4 pantallas admite 2 extra. 1 pantalla no admite extra.
     if (tipoCuenta.includes('1 pantalla')) total = 1;
-    else if (tipoCuenta.includes('2 pantallas')) total = 2;
-    else if (tipoCuenta.includes('4 pantallas')) total = 4;
+    else if (tipoCuenta.includes('2 pantallas')) total = 3; // 2 pantallas + 1 miembro extra
+    else if (tipoCuenta.includes('4 pantallas')) total = 6; // 4 pantallas + 2 miembros extra
     else if (tipoCuenta.includes('5 perfiles')) total = 5;
     else if (tipoCuenta.includes('premium')) total = 6; // YouTube: 1 principal + 5 vinculadas
 
@@ -580,6 +593,7 @@ export const useStreaming = (mesActivo: string) => {
     asignarSuscripcion,
     actualizarSuscripcion,
     cancelarSuscripcion,
+    reactivarSuscripcion,
     marcarRecordatorio,
 
     // Funciones de cobros y costos

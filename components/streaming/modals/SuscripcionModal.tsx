@@ -7,13 +7,14 @@ import { useStreaming, Suscripcion } from '@/hooks/useStreaming';
 interface SuscripcionModalProps {
   streaming: ReturnType<typeof useStreaming>;
   suscripcion?: Suscripcion | null;
+  clienteIdPreset?: number;
   onClose: () => void;
   onGuardar: (suscripcion: any, id?: number) => Promise<void>;
 }
 
-export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }: SuscripcionModalProps) => {
+export const SuscripcionModal = ({ streaming, suscripcion, clienteIdPreset, onClose, onGuardar }: SuscripcionModalProps) => {
   const [cuentaId, setCuentaId] = useState<number>(suscripcion?.cuenta_id || 0);
-  const [clienteId, setClienteId] = useState<number>(suscripcion?.cliente_id || 0);
+  const [clienteId, setClienteId] = useState<number>(suscripcion?.cliente_id || clienteIdPreset || 0);
   const [tipoAcceso, setTipoAcceso] = useState(suscripcion?.tipo_acceso || '');
   const [costoMensual, setCostoMensual] = useState(suscripcion?.costo_mensual?.toString() || '');
   const [proximoCobro, setProximoCobro] = useState(suscripcion?.proximo_cobro || '');
@@ -24,6 +25,12 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
 
   const cuentasActivas = streaming.cuentas.filter(c => c.activa);
   const clientesActivos = streaming.clientes.filter(c => c.activo);
+
+  // Al editar una suscripción activa no se puede tocar cuenta/tipo de acceso
+  // (protege el slot en uso). Al reactivar una inactiva, sí se permite,
+  // porque el slot original pudo haber sido ocupado por otro cliente mientras tanto.
+  const bloquearCuentaYAcceso = !!suscripcion && suscripcion.activa;
+  const esReactivacion = !!suscripcion && !suscripcion.activa;
 
   useEffect(() => {
     if (!cuentaId) return;
@@ -37,9 +44,9 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
     if (tipoCuenta.includes('1 pantalla')) {
       opciones = ['Pantalla 1'];
     } else if (tipoCuenta.includes('2 pantallas')) {
-      opciones = ['Pantalla 1', 'Pantalla 2'];
+      opciones = ['Pantalla 1', 'Pantalla 2', 'Miembro Extra 1'];
     } else if (tipoCuenta.includes('4 pantallas')) {
-      opciones = ['Pantalla 1', 'Pantalla 2', 'Pantalla 3', 'Pantalla 4'];
+      opciones = ['Pantalla 1', 'Pantalla 2', 'Pantalla 3', 'Pantalla 4', 'Miembro Extra 1', 'Miembro Extra 2'];
     } else if (tipoCuenta.includes('5 perfiles')) {
       opciones = ['Perfil 1', 'Perfil 2', 'Perfil 3', 'Perfil 4', 'Perfil 5'];
     } else if (tipoCuenta.includes('premium')) {
@@ -105,7 +112,7 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-white text-2xl font-bold mb-6">
-          {suscripcion ? 'Editar Suscripción' : 'Nueva Suscripción'}
+          {esReactivacion ? 'Reactivar Suscripción' : suscripcion ? 'Editar Suscripción' : 'Nueva Suscripción'}
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -122,21 +129,28 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
               }}
               className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               required
-              disabled={!!suscripcion}
+              disabled={bloquearCuentaYAcceso}
             >
               <option value={0}>Selecciona una cuenta</option>
               {cuentasActivas.map((cuenta) => {
                 const espacios = streaming.getEspaciosDisponibles(cuenta.id);
+                const llena = espacios.disponibles <= 0;
                 return (
-                  <option key={cuenta.id} value={cuenta.id}>
-                    {cuenta.servicio} - {cuenta.tipo_cuenta} — {cuenta.email || 'sin correo'} ({espacios.disponibles}/{espacios.total} libres)
+                  <option key={cuenta.id} value={cuenta.id} disabled={llena}>
+                    {llena ? '🔴 LLENA' : `🟢 ${espacios.disponibles} libre${espacios.disponibles === 1 ? '' : 's'}`}
+                    {' — '}{cuenta.servicio} {cuenta.tipo_cuenta} ({cuenta.email || 'sin correo'})
                   </option>
                 );
               })}
             </select>
-            {suscripcion && (
+            {bloquearCuentaYAcceso && (
               <p className="text-white/40 text-xs mt-1">
                 La cuenta no se puede cambiar al editar
+              </p>
+            )}
+            {esReactivacion && (
+              <p className="text-white/40 text-xs mt-1">
+                Podés elegir la misma cuenta u otra distinta para reactivar al cliente
               </p>
             )}
           </div>
@@ -157,14 +171,14 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
                   onChange={(e) => setTipoAcceso(e.target.value)}
                   className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   required
-                  disabled={!!suscripcion}
+                  disabled={bloquearCuentaYAcceso}
                 >
                   {espaciosDisponibles.map((espacio) => (
                     <option key={espacio} value={espacio}>{espacio}</option>
                   ))}
                 </select>
               )}
-              {suscripcion && (
+              {bloquearCuentaYAcceso && (
                 <p className="text-white/40 text-xs mt-1">
                   El tipo de acceso no se puede cambiar al editar
                 </p>
@@ -267,9 +281,9 @@ export const SuscripcionModal = ({ streaming, suscripcion, onClose, onGuardar }:
             <button
               type="submit"
               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold transition-all disabled:opacity-50"
-              disabled={guardando || (!suscripcion && espaciosDisponibles.length === 0)}
+              disabled={guardando || (!bloquearCuentaYAcceso && cuentaId > 0 && espaciosDisponibles.length === 0)}
             >
-              {guardando ? 'Guardando...' : (suscripcion ? 'Actualizar' : 'Guardar')}
+              {guardando ? 'Guardando...' : esReactivacion ? 'Reactivar' : (suscripcion ? 'Actualizar' : 'Guardar')}
             </button>
           </div>
         </form>

@@ -19,9 +19,9 @@ export const DetalleCuentaModal = ({ cuenta, suscripcionesActivas, onClose }: De
   if (tipoCuenta.includes('1 pantalla')) {
     espaciosTotales = 1;
   } else if (tipoCuenta.includes('2 pantallas')) {
-    espaciosTotales = 2;
+    espaciosTotales = 3; // 2 pantallas + 1 miembro extra
   } else if (tipoCuenta.includes('4 pantallas')) {
-    espaciosTotales = 4;
+    espaciosTotales = 6; // 4 pantallas + 2 miembros extra
   } else if (tipoCuenta.includes('5 perfiles')) {
     espaciosTotales = 5;
   } else if (tipoCuenta.includes('premium')) {
