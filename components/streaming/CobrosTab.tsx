@@ -294,9 +294,10 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
           suscripciones={grupoACobrar}
           bancos={BANCOS}
           onClose={() => setGrupoACobrar(null)}
-          onCobrar={async (banco, fecha, notas) => {
+          onCobrar={async (banco, fecha, notas, overrides) => {
             for (const s of grupoACobrar) {
-              await streaming.cobrarPago(s, banco, fecha, notas);
+              const o = overrides?.[s.id];
+              await streaming.cobrarPago(s, banco, fecha, notas, o?.monto, o?.proximoCobro);
             }
           }}
         />

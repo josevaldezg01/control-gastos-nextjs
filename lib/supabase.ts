@@ -549,20 +549,24 @@ export const streamingHelpers = {
     return data;
   },
 
-  async updateProximoCobro(suscripcionId: number) {
-    // Obtener suscripción actual
-    const { data: suscripcion, error: errorGet } = await supabase
-      .from('suscripciones')
-      .select('proximo_cobro')
-      .eq('id', suscripcionId)
-      .single();
+  async updateProximoCobro(suscripcionId: number, fechaManual?: string) {
+    let nuevaFecha = fechaManual;
 
-    if (errorGet) throw errorGet;
+    if (!nuevaFecha) {
+      // Obtener suscripción actual
+      const { data: suscripcion, error: errorGet } = await supabase
+        .from('suscripciones')
+        .select('proximo_cobro')
+        .eq('id', suscripcionId)
+        .single();
 
-    // Sumar 1 mes a la fecha actual
-    const fechaActual = new Date(suscripcion.proximo_cobro);
-    fechaActual.setMonth(fechaActual.getMonth() + 1);
-    const nuevaFecha = fechaActual.toISOString().split('T')[0];
+      if (errorGet) throw errorGet;
+
+      // Sumar 1 mes a la fecha actual
+      const fechaActual = new Date(suscripcion.proximo_cobro);
+      fechaActual.setMonth(fechaActual.getMonth() + 1);
+      nuevaFecha = fechaActual.toISOString().split('T')[0];
+    }
 
     // Actualizar
     const { data, error } = await supabase

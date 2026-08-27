@@ -307,27 +307,29 @@ export const useStreaming = (mesActivo: string) => {
     suscripcion: Suscripcion,
     banco: string,
     fecha: string,
-    notas: string = ''
+    notas: string = '',
+    montoOverride?: number,
+    proximoCobroOverride?: string
   ) => {
     try {
       if (!mesActivo) {
         throw new Error('No hay mes activo seleccionado');
       }
 
-      // 1. Crear pago
+      // 1. Crear pago (permite un monto distinto al mensual, ej. pago adelantado de varios meses)
       const pago = await streamingHelpers.addPago({
         suscripcion_id: suscripcion.id,
         cliente_id: suscripcion.cliente_id,
         servicio: suscripcion.cuenta?.servicio || '',
-        monto: suscripcion.costo_mensual,
+        monto: montoOverride ?? suscripcion.costo_mensual,
         fecha_pago: fecha,
         banco_destino: banco,
         mes_contable: mesActivo,
         notas: notas || suscripcion.cliente?.nombre || ''
       });
 
-      // 2. Actualizar próximo cobro (+1 mes) y limpiar recordatorio
-      await streamingHelpers.updateProximoCobro(suscripcion.id);
+      // 2. Actualizar próximo cobro (+1 mes, o la fecha indicada si pagó por adelantado) y limpiar recordatorio
+      await streamingHelpers.updateProximoCobro(suscripcion.id, proximoCobroOverride);
       await streamingHelpers.limpiarRecordatorio(suscripcion.id);
 
       // 3. Recargar datos
