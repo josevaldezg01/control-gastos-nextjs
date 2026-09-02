@@ -25,6 +25,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
   const [tipoCuenta, setTipoCuenta] = useState(cuenta?.tipo_cuenta || '');
   const [costoMensual, setCostoMensual] = useState(cuenta?.costo_mensual?.toString() || '');
   const [diaPago, setDiaPago] = useState(cuenta?.dia_pago?.toString() || '');
+  const [proximaRecarga, setProximaRecarga] = useState(cuenta?.proxima_recarga || '');
   const [email, setEmail] = useState(cuenta?.email || '');
   const [tarjetaVinculada, setTarjetaVinculada] = useState(cuenta?.tarjeta_vinculada || '');
   const [notas, setNotas] = useState(cuenta?.notas || '');
@@ -57,6 +58,7 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
         tipo_cuenta: tipoCuenta,
         costo_mensual: parseFloat(costoMensual),
         dia_pago: diaPago ? parseInt(diaPago) : null,
+        proxima_recarga: servicio === 'Netflix' ? (proximaRecarga || null) : null,
         email: email.trim(),
         tarjeta_vinculada: servicio !== 'Netflix' ? (tarjetaVinculada.trim() || null) : null,
         notas: notas || null,
@@ -179,7 +181,30 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
               min="1"
               max="31"
             />
+            {servicio === 'Netflix' && (
+              <p className="text-white/40 text-xs mt-1">
+                Solo se usa como estimado antes de la primera recarga. Una vez aplicás un pin, manda la "Próxima recarga" de abajo.
+              </p>
+            )}
           </div>
+
+          {/* Próxima recarga (solo Netflix, se recalcula al aplicar un pin pero se puede ajustar manualmente) */}
+          {servicio === 'Netflix' && (
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">
+                Próxima recarga
+              </label>
+              <input
+                type="date"
+                value={proximaRecarga}
+                onChange={(e) => setProximaRecarga(e.target.value)}
+                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              />
+              <p className="text-white/40 text-xs mt-1">
+                Se calcula sola cuando registras el pago de un pin, pero podés corregirla manualmente aquí si quedó mal.
+              </p>
+            </div>
+          )}
 
           {/* Notas */}
           <div>
