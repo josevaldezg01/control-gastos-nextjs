@@ -92,6 +92,16 @@ export const calcularProximaRecarga = (fechaBase: string, pinValor: number, cost
   return fecha.toISOString().split('T')[0];
 };
 
+// Si la cuenta ya tiene cubierta la recarga hasta una fecha futura (ej. compraste un pin
+// adelantado), un nuevo pin debe sumarse a partir de esa fecha, no desde hoy/la fecha de
+// pago -de lo contrario la nueva fecha podria quedar antes de la que ya estaba cubierta-.
+export const fechaBaseRecarga = (cuenta: CuentaStreaming, fechaPago: string): string => {
+  if (cuenta.proxima_recarga && cuenta.proxima_recarga > fechaPago) {
+    return cuenta.proxima_recarga;
+  }
+  return fechaPago;
+};
+
 export interface TareaStreaming {
   id: number;
   descripcion: string;
@@ -388,7 +398,7 @@ export const useStreaming = (mesActivo: string) => {
       if (cuenta.servicio === 'Netflix') {
         const montoAplicado = monto ?? cuenta.costo_mensual;
         await streamingHelpers.updateCuenta(cuenta.id, {
-          proxima_recarga: calcularProximaRecarga(fecha, montoAplicado, cuenta.costo_mensual),
+          proxima_recarga: calcularProximaRecarga(fechaBaseRecarga(cuenta, fecha), montoAplicado, cuenta.costo_mensual),
           pin_pendiente_codigo: null,
           pin_pendiente_valor: null
         });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useStreaming, CuentaStreaming, PINES_NETFLIX, diasCubiertosPorPin, calcularProximaRecarga } from '@/hooks/useStreaming';
+import { useStreaming, CuentaStreaming, PINES_NETFLIX, diasCubiertosPorPin, calcularProximaRecarga, fechaBaseRecarga } from '@/hooks/useStreaming';
 import { BANCOS } from '@/lib/types';
 import { PagarCostoModal } from './modals/PagarCostoModal';
 
@@ -290,7 +290,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                           </button>
                         </div>
                         <p className="text-orange-300 text-xs">
-                          📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(hoy, draft.pin, cuenta.costo_mensual)).toLocaleDateString()}
+                          📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(fechaBaseRecarga(cuenta, hoy), draft.pin, cuenta.costo_mensual)).toLocaleDateString()}
                           {' '}({diasCubiertosPorPin(draft.pin, cuenta.costo_mensual)} días)
                         </p>
                       </div>

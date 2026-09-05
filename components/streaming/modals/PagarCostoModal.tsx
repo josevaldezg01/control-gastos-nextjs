@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CuentaStreaming, PINES_NETFLIX, calcularProximaRecarga, diasCubiertosPorPin } from '@/hooks/useStreaming';
+import { CuentaStreaming, PINES_NETFLIX, calcularProximaRecarga, diasCubiertosPorPin, fechaBaseRecarga } from '@/hooks/useStreaming';
 
 interface PagarCostoModalProps {
   cuenta: CuentaStreaming;
@@ -134,7 +134,7 @@ export const PagarCostoModal = ({ cuenta, bancos, pinInicial, codigoInicial, onC
                 className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none font-mono"
               />
               <p className="text-orange-300 text-xs mt-2">
-                📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(fecha, monto, cuenta.costo_mensual)).toLocaleDateString()}
+                📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(fechaBaseRecarga(cuenta, fecha), monto, cuenta.costo_mensual)).toLocaleDateString()}
                 {' '}({diasCubiertosPorPin(monto, cuenta.costo_mensual)} días)
               </p>
             </div>
