@@ -482,6 +482,22 @@ export const useStreaming = (mesActivo: string) => {
   // MÉTRICAS Y CÁLCULOS
   // ============================================
 
+  // Una cuenta Netflix se recarga a un ritmo propio segun el pin comprado (no una vez
+  // al mes calendario). Se mantiene en pendientes -aunque ya se haya pagado una vez este
+  // mes- mientras la proxima recarga siga cayendo dentro del mes activo (o atrasada de
+  // meses anteriores): asi el compromiso queda visible con anticipacion en vez de
+  // desaparecer hasta el cierre de mes. Solo pasa a pagada cuando el pin comprado alcanza
+  // para cubrir hasta el mes siguiente (ej. de agosto a septiembre).
+  const cuentaEstaPendiente = useCallback((cuenta: CuentaStreaming): boolean => {
+    if (!cuenta.activa) return false;
+    if (cuenta.servicio === 'Netflix') {
+      if (!cuenta.proxima_recarga) return true;
+      const mesRecarga = cuenta.proxima_recarga.slice(0, 7); // "YYYY-MM"
+      return mesRecarga <= mesActivo;
+    }
+    return !costos.some(costo => costo.cuenta_id === cuenta.id);
+  }, [costos, mesActivo]);
+
   const calcularMetricas = useCallback((): MetricasStreaming => {
     const totalCobrado = pagos.reduce((sum, p) => sum + p.monto, 0);
     const totalGastado = costos.reduce((sum, c) => sum + c.monto, 0);
@@ -493,9 +509,7 @@ export const useStreaming = (mesActivo: string) => {
     );
     const montoPendiente = cobrosPendientesList.reduce((sum, s) => sum + s.costo_mensual, 0);
 
-    const costosPendientesList = cuentas.filter(c =>
-      c.activa && !costos.some(costo => costo.cuenta_id === c.id)
-    );
+    const costosPendientesList = cuentas.filter(cuentaEstaPendiente);
     const montoCostosPendiente = costosPendientesList.reduce((sum, c) => sum + c.costo_mensual, 0);
 
     return {
@@ -507,7 +521,7 @@ export const useStreaming = (mesActivo: string) => {
       costosPendientes: costosPendientesList.length,
       montoCostosPendiente
     };
-  }, [pagos, costos, suscripciones, cuentas]);
+  }, [pagos, costos, suscripciones, cuentas, cuentaEstaPendiente]);
 
   const getEspaciosDisponibles = useCallback((cuentaId: number): EspaciosDisponibles => {
     const cuenta = cuentas.find(c => c.id === cuentaId);
@@ -537,10 +551,8 @@ export const useStreaming = (mesActivo: string) => {
   }, [suscripciones]);
 
   const getCostosPendientes = useCallback((): CuentaStreaming[] => {
-    return cuentas.filter(c =>
-      c.activa && !costos.some(costo => costo.cuenta_id === c.id)
-    );
-  }, [cuentas, costos]);
+    return cuentas.filter(cuentaEstaPendiente);
+  }, [cuentas, cuentaEstaPendiente]);
 
   const getClientesDeCuenta = useCallback((cuentaId: number): Suscripcion[] => {
     return suscripciones.filter(s => s.cuenta_id === cuentaId && s.activa);
@@ -557,8 +569,10 @@ export const useStreaming = (mesActivo: string) => {
   }, [suscripciones, cuentas]);
 
   const estaCuentaPagadaEsteMes = useCallback((cuentaId: number): boolean => {
-    return costos.some(c => c.cuenta_id === cuentaId);
-  }, [costos]);
+    const cuenta = cuentas.find(c => c.id === cuentaId);
+    if (!cuenta) return false;
+    return !cuentaEstaPendiente(cuenta);
+  }, [cuentas, cuentaEstaPendiente]);
 
   const getDiasAtraso = useCallback((proximoCobro: string): number => {
     const hoy = new Date();
