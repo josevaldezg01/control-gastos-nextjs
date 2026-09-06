@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useStreaming, Suscripcion } from '@/hooks/useStreaming';
+import { formatearFecha } from '@/lib/utils';
 import { CuentaModal } from './modals/CuentaModal';
 import { TareaModal } from './modals/TareaModal';
 import { SuscripcionModal } from './modals/SuscripcionModal';
@@ -215,7 +216,7 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                 {/* Día de pago / próxima recarga (Netflix) */}
                 {cuenta.servicio === 'Netflix' && cuenta.proxima_recarga ? (
                   <div className="text-orange-300 text-sm mb-3">
-                    📅 Próxima recarga: {new Date(cuenta.proxima_recarga).toLocaleDateString()}
+                    📅 Próxima recarga: {formatearFecha(cuenta.proxima_recarga)}
                   </div>
                 ) : cuenta.dia_pago ? (
                   <div className="text-white/60 text-sm mb-3">

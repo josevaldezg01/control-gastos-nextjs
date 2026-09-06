@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Suscripcion } from '@/hooks/useStreaming';
+import { fechaHoyLocal, formatearFecha } from '@/lib/utils';
 
 interface CobroOverride {
   monto: number;
@@ -27,7 +28,7 @@ export const CobrarModal = ({ suscripciones, bancos, onClose, onCobrar }: Cobrar
   const primera = suscripciones[0];
   const esGrupo = suscripciones.length > 1;
   const [banco, setBanco] = useState(bancos[0] || 'Nequi');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(fechaHoyLocal());
   const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
 
@@ -134,7 +135,7 @@ export const CobrarModal = ({ suscripciones, bancos, onClose, onCobrar }: Cobrar
                 <div className="flex justify-between">
                   <span className="text-white/60 text-sm">Fecha vencimiento:</span>
                   <span className="text-white/80">
-                    {new Date(primera.proximo_cobro).toLocaleDateString()}
+                    {formatearFecha(primera.proximo_cobro)}
                   </span>
                 </div>
               </>

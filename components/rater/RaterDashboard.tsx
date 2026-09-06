@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRater } from '@/hooks/useRater';
+import { formatearFecha } from '@/lib/utils';
 
 const formatoUSD = (valor: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -473,7 +474,7 @@ export const RaterDashboard = () => {
                     <div>
                       <div className="text-white font-semibold">{h.anio}</div>
                       <div className="text-white/40 text-xs">
-                        {h.total_tareas} tareas · {formatoMinutos(h.total_minutos)} · cerrado {new Date(h.fecha_cierre).toLocaleDateString()}
+                        {h.total_tareas} tareas · {formatoMinutos(h.total_minutos)} · cerrado {formatearFecha(h.fecha_cierre)}
                       </div>
                     </div>
                     <div className="text-right">

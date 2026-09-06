@@ -1,5 +1,6 @@
 // lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
+import { fechaHoyLocal } from './utils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -427,7 +428,7 @@ export const streamingHelpers = {
   },
 
   async getSuscripcionesPendientes() {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
     const { data, error } = await supabase
       .from('suscripciones')
       .select(`
@@ -515,7 +516,7 @@ export const streamingHelpers = {
       .from('suscripciones')
       .update({
         activa: false,
-        fecha_fin: new Date().toISOString().split('T')[0]
+        fecha_fin: fechaHoyLocal()
       })
       .eq('id', id)
       .select(`
@@ -581,7 +582,7 @@ export const streamingHelpers = {
   },
 
   async marcarRecordatorio(suscripcionId: number) {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
     const { data, error } = await supabase
       .from('suscripciones')
       .update({ fecha_recordatorio: hoy })
@@ -781,7 +782,7 @@ export const streamingHelpers = {
     mesContable: string;
     notas?: string;
   }) {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
 
     // 1. Crear el movimiento de ingreso (la ganancia consolidada)
     const { data: movimiento, error: movError } = await supabase
@@ -922,7 +923,7 @@ export const streamingHelpers = {
   },
 
   async completarTarea(id: number) {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
     const { data, error } = await supabase
       .from('tareas_streaming')
       .update({ completada: true, fecha_completada: hoy })

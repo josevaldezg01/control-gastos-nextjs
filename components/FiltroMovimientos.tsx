@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Filter, History, Download, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react';
 import { Card, Select, Button } from '@/components/ui';
-import { formatoMoneda, formatearFechaCompleta, generarCSV } from '@/lib/utils';
+import { formatoMoneda, formatearFechaCompleta, generarCSV, fechaHoyLocal } from '@/lib/utils';
 import { BANCOS, CATEGORIAS_INGRESO, CATEGORIAS_GASTO } from '@/lib/types';
 import type { Movimiento } from '@/lib/types';
 
@@ -82,7 +82,7 @@ export const FiltroMovimientos: React.FC<FiltroMovimientosProps> = ({ movimiento
       'Mes Contable': mov.mes_contable
     }));
 
-    generarCSV(datosCSV, `movimientos_${new Date().toISOString().split('T')[0]}`);
+    generarCSV(datosCSV, `movimientos_${fechaHoyLocal()}`);
   };
 
   const getIconoTipo = (tipo: string) => {

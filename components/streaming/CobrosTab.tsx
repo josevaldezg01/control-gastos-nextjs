@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useStreaming, Suscripcion } from '@/hooks/useStreaming';
 import { BANCOS } from '@/lib/types';
+import { formatearFecha } from '@/lib/utils';
 import { CobrarModal } from './modals/CobrarModal';
 
 interface CobrosTabProps {
@@ -45,7 +46,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
     if (fechaEnviado) {
       return (
         <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-xs whitespace-nowrap">
-          📧 Enviado {new Date(fechaEnviado).toLocaleDateString()}
+          📧 Enviado {formatearFecha(fechaEnviado)}
         </span>
       );
     }
@@ -197,7 +198,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                         <div>
                           <div className="text-white/60 text-sm">Próximo cobro</div>
                           <div className="text-white">
-                            {new Date(primera.proximo_cobro).toLocaleDateString()}
+                            {formatearFecha(primera.proximo_cobro)}
                           </div>
                         </div>
                         <div>
@@ -277,7 +278,7 @@ export const CobrosTab = ({ streaming, mesActivo }: CobrosTabProps) => {
                       {formatoMoneda(pago.monto)}
                     </td>
                     <td className="px-4 py-3 text-white/80 text-sm">
-                      {new Date(pago.fecha_pago).toLocaleDateString()}
+                      {formatearFecha(pago.fecha_pago)}
                     </td>
                     <td className="px-4 py-3 text-white/80">{pago.banco_destino}</td>
                   </tr>

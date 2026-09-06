@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CuentaStreaming, PINES_NETFLIX, calcularProximaRecarga, diasCubiertosPorPin, fechaBaseRecarga } from '@/hooks/useStreaming';
+import { fechaHoyLocal, formatearFecha } from '@/lib/utils';
 
 interface PagarCostoModalProps {
   cuenta: CuentaStreaming;
@@ -16,7 +17,7 @@ interface PagarCostoModalProps {
 export const PagarCostoModal = ({ cuenta, bancos, pinInicial, codigoInicial, onClose, onPagar }: PagarCostoModalProps) => {
   const esNetflix = cuenta.servicio === 'Netflix';
   const [banco, setBanco] = useState(bancos[0] || 'Nequi');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(fechaHoyLocal());
   const [notas, setNotas] = useState('');
   const [monto, setMonto] = useState<number>(esNetflix ? (pinInicial || PINES_NETFLIX[0]) : cuenta.costo_mensual);
   const [codigoPin, setCodigoPin] = useState(codigoInicial || '');
@@ -134,7 +135,7 @@ export const PagarCostoModal = ({ cuenta, bancos, pinInicial, codigoInicial, onC
                 className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none font-mono"
               />
               <p className="text-orange-300 text-xs mt-2">
-                📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(fechaBaseRecarga(cuenta, fecha), monto, cuenta.costo_mensual)).toLocaleDateString()}
+                📅 Próxima recarga estimada: {formatearFecha(calcularProximaRecarga(fechaBaseRecarga(cuenta, fecha), monto, cuenta.costo_mensual))}
                 {' '}({diasCubiertosPorPin(monto, cuenta.costo_mensual)} días)
               </p>
             </div>

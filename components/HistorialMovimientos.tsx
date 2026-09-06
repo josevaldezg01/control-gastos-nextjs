@@ -3,7 +3,7 @@
 import React from 'react';
 import { History, Download, Trash2, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react';
 import { Card, Button } from '@/components/ui';
-import { formatoMoneda, formatearFechaCompleta, generarCSV } from '@/lib/utils';
+import { formatoMoneda, formatearFechaCompleta, generarCSV, fechaHoyLocal } from '@/lib/utils';
 import type { Movimiento } from '@/lib/types';
 
 interface HistorialMovimientosProps {
@@ -28,7 +28,7 @@ export const HistorialMovimientos: React.FC<HistorialMovimientosProps> = ({ movi
       'Mes Contable': mov.mes_contable
     }));
 
-    generarCSV(datosCSV, `movimientos_${new Date().toISOString().split('T')[0]}`);
+    generarCSV(datosCSV, `movimientos_${fechaHoyLocal()}`);
   };
 
   const getIconoTipo = (tipo: string) => {

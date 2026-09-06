@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useStreaming } from '@/hooks/useStreaming';
+import { formatearFecha } from '@/lib/utils';
 import { SuscripcionModal } from './modals/SuscripcionModal';
 
 interface SuscripcionesTabProps {
@@ -119,9 +120,9 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
                     </td>
                     <td className="px-4 py-3 text-white/80 text-sm">
                       {suscripcion.activa
-                        ? new Date(suscripcion.proximo_cobro).toLocaleDateString()
+                        ? formatearFecha(suscripcion.proximo_cobro)
                         : suscripcion.fecha_fin
-                          ? new Date(suscripcion.fecha_fin).toLocaleDateString()
+                          ? formatearFecha(suscripcion.fecha_fin)
                           : '-'
                       }
                     </td>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useStreaming, TareaStreaming } from '@/hooks/useStreaming';
+import { formatearFecha } from '@/lib/utils';
 import { TareaModal } from './modals/TareaModal';
 
 interface TareasTabProps {
@@ -87,8 +88,8 @@ export const TareasTab = ({ streaming }: TareasTabProps) => {
                   )}
                   <span>
                     {tarea.completada && tarea.fecha_completada
-                      ? `Completada: ${new Date(tarea.fecha_completada).toLocaleDateString()}`
-                      : `Creada: ${new Date(tarea.fecha_creacion).toLocaleDateString()}`}
+                      ? `Completada: ${formatearFecha(tarea.fecha_completada)}`
+                      : `Creada: ${formatearFecha(tarea.fecha_creacion)}`}
                   </span>
                 </div>
               </div>

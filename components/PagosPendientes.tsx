@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Clock, Plus, Check, Trash2, Edit2, DollarSign, Calendar, AlertCircle, X } from 'lucide-react';
 import { Card, Button, Input, Select } from '@/components/ui';
-import { formatoMoneda, formatearFecha } from '@/lib/utils';
+import { formatoMoneda, formatearFecha, fechaHoyLocal } from '@/lib/utils';
 import { BANCOS, CATEGORIAS_PAGOS_PENDIENTES, type Banco } from '@/lib/types';
 import type { PagoPendiente } from '@/lib/types';
 
@@ -203,13 +203,13 @@ export const PagosPendientes: React.FC<PagosPendientesProps> = ({
   }, {} as Record<string, PagoPendiente[]>);
 
   // Calcular estadísticas
-  const hoy = new Date();
+  const hoy = fechaHoyLocal();
   const pagosPendientesActivos = pagosPendientes.filter(p => !p.completado);
   const pagosCompletados = pagosPendientes.filter(p => p.completado);
-  const pagosVencidos = pagosPendientes.filter(p => 
-    !p.completado && 
-    p.fecha_vencimiento && 
-    new Date(p.fecha_vencimiento) < hoy
+  const pagosVencidos = pagosPendientes.filter(p =>
+    !p.completado &&
+    p.fecha_vencimiento &&
+    p.fecha_vencimiento < hoy
   );
   
   const totalPendiente = pagosPendientesActivos.reduce((sum, p) => sum + p.valor, 0);
@@ -422,7 +422,7 @@ export const PagosPendientes: React.FC<PagosPendientesProps> = ({
               {pagos.map((pago) => {
                 const fechaVencimiento = pago.fecha_vencimiento ? new Date(pago.fecha_vencimiento) : null;
                 const fechaPago = pago.fecha_completado ? new Date(pago.fecha_completado) : null;
-                const estaVencido = fechaVencimiento && fechaVencimiento < hoy && !pago.completado;
+                const estaVencido = !!pago.fecha_vencimiento && pago.fecha_vencimiento < hoy && !pago.completado;
 
                 return (
                   <div 

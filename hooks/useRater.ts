@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { raterHelpers } from '@/lib/supabase';
+import { fechaHoyLocal } from '@/lib/utils';
 
 export interface RaterConfig {
   tarifa_hora_usd: number;
@@ -39,7 +40,7 @@ export interface DiaAgrupado extends TotalesPeriodo {
   cantidadTareas: number;
 }
 
-const hoyISO = () => new Date().toISOString().split('T')[0];
+const hoyISO = () => fechaHoyLocal();
 
 const sumarTotales = (tareas: { minutos: number; ganancia_usd: number; ganancia_cop: number }[]): TotalesPeriodo => {
   return tareas.reduce(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Groq from 'groq-sdk';
+import { fechaHoyLocal } from '@/lib/utils';
 
 // Usa la service role key (nunca expuesta al navegador) para que el bot
 // siga funcionando una vez que las políticas de RLS exigen sesión autenticada.
@@ -217,7 +218,7 @@ function parseMessage(text: string): Record<string, unknown> | null {
     fecha: now.toISOString(),
     banco_destino: banco,
     categoria: inferCategory(descripcion, tipo),
-    mes_contable: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+    mes_contable: fechaHoyLocal().slice(0, 7),
   };
 }
 

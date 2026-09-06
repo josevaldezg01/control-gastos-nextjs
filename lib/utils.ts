@@ -18,6 +18,22 @@ export function formatoMoneda(valor: number): string {
   }).format(valor);
 }
 
+// La app es de uso exclusivo en Colombia (sin horario de verano), asi que se fija
+// la zona explicitamente en vez de confiar en la del navegador/servidor: esto
+// tambien evita el bug donde el bot de Telegram (corre en Vercel, en UTC) archivaba
+// gastos de ultima hora en el mes calendario siguiente.
+const ZONA_HORARIA_APP = 'America/Bogota';
+
+// Fecha de "hoy" en formato YYYY-MM-DD, en hora de Colombia (no UTC ni la del
+// entorno donde corre el codigo). new Date().toISOString() siempre da la fecha
+// en UTC: eso adelanta el dia entre las 7pm y la medianoche en Colombia. Usar
+// esta funcion (no new Date().toISOString().split('T')[0]) para cualquier "hoy"
+// de calendario, tanto en cliente como en servidor.
+export function fechaHoyLocal(): string {
+  // en-CA formatea fechas como YYYY-MM-DD por defecto.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_HORARIA_APP }).format(new Date());
+}
+
 // Formateo de fechas
 export function formatearFecha(fecha: string | Date, formato: string = "dd/MM/yyyy"): string {
   const fechaObj = typeof fecha === 'string' ? parseISO(fecha) : fecha;

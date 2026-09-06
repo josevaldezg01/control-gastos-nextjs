@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { streamingHelpers } from '@/lib/supabase';
+import { fechaHoyLocal } from '@/lib/utils';
 
 // Tipos
 export interface CuentaStreaming {
@@ -513,7 +514,7 @@ export const useStreaming = (mesActivo: string) => {
     const totalGastado = costos.reduce((sum, c) => sum + c.monto, 0);
     const ganancia = totalCobrado - totalGastado;
 
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
     const cobrosPendientesList = suscripciones.filter(s =>
       s.activa && s.proximo_cobro <= hoy
     );
@@ -556,7 +557,7 @@ export const useStreaming = (mesActivo: string) => {
   }, [cuentas, suscripciones]);
 
   const getSuscripcionesPendientes = useCallback((): Suscripcion[] => {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
     return suscripciones.filter(s => s.activa && s.proximo_cobro <= hoy);
   }, [suscripciones]);
 
@@ -585,10 +586,10 @@ export const useStreaming = (mesActivo: string) => {
   }, [cuentas, cuentaEstaPendiente]);
 
   const getDiasAtraso = useCallback((proximoCobro: string): number => {
-    const hoy = new Date();
-    const fechaCobro = new Date(proximoCobro);
-    const diff = hoy.getTime() - fechaCobro.getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
+    // Comparar solo fechas (YYYY-MM-DD) parseadas igual, no un Date con hora
+    // actual contra otro sin hora: eso desfasaba el conteo segun la hora del dia.
+    const diff = new Date(fechaHoyLocal()).getTime() - new Date(proximoCobro).getTime();
+    return Math.round(diff / (1000 * 60 * 60 * 24));
   }, []);
 
   // ============================================

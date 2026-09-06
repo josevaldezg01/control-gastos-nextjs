@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { dbHelpers } from '@/lib/supabase';
-import { obtenerInfoMesActivo } from '@/lib/utils';
+import { obtenerInfoMesActivo, fechaHoyLocal } from '@/lib/utils';
 import type { 
   Banco, 
   Movimiento, 
@@ -17,10 +17,7 @@ import { BANCOS } from '@/lib/types';
 export function useGastos() {
 const [mesActivoActual, setMesActivoActual] = useState<string>(() => {
   // Calcular mes actual como fallback inicial
-  const hoy = new Date();
-  const año = hoy.getFullYear();
-  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-  return `${año}-${mes}`;
+  return fechaHoyLocal().slice(0, 7);
 });
 
 // Cargar mes activo desde la base de datos al iniciar

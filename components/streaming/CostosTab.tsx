@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useStreaming, CuentaStreaming, PINES_NETFLIX, diasCubiertosPorPin, calcularProximaRecarga, fechaBaseRecarga } from '@/hooks/useStreaming';
 import { BANCOS } from '@/lib/types';
+import { fechaHoyLocal, formatearFecha } from '@/lib/utils';
 import { PagarCostoModal } from './modals/PagarCostoModal';
 
 const SERVICIOS = ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'YouTube Premium'] as const;
@@ -28,10 +29,10 @@ const diasHastaProximoPago = (diaPago: number): number => {
 // en vez de asumir un día fijo de cada mes
 const diasHastaProxima = (cuenta: CuentaStreaming): number => {
   if (cuenta.servicio === 'Netflix' && cuenta.proxima_recarga) {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const fecha = new Date(cuenta.proxima_recarga);
-    return Math.floor((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+    // Comparar dos fechas-only parseadas igual (ambas "YYYY-MM-DD"), no un Date con
+    // hora local contra otro parseado en UTC: eso desfasaba el conteo de dias.
+    const diff = new Date(cuenta.proxima_recarga).getTime() - new Date(fechaHoyLocal()).getTime();
+    return Math.round(diff / (1000 * 60 * 60 * 24));
   }
   return diasHastaProximoPago(cuenta.dia_pago || 32);
 };
@@ -168,7 +169,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
             costosPendientes.map((cuenta) => {
               const esNetflix = cuenta.servicio === 'Netflix';
               const draft = getDraft(cuenta);
-              const hoy = new Date().toISOString().split('T')[0];
+              const hoy = fechaHoyLocal();
               const pinGuardado =
                 cuenta.pin_pendiente_valor === draft.pin &&
                 (cuenta.pin_pendiente_codigo || '') === draft.codigo;
@@ -226,7 +227,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                         <div>
                           <div className="text-white/60 text-sm">Próxima recarga</div>
                           <div className="text-white">
-                            {new Date(cuenta.proxima_recarga).toLocaleDateString()}
+                            {formatearFecha(cuenta.proxima_recarga)}
                           </div>
                         </div>
                       ) : cuenta.dia_pago ? (
@@ -290,7 +291,7 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                           </button>
                         </div>
                         <p className="text-orange-300 text-xs">
-                          📅 Próxima recarga estimada: {new Date(calcularProximaRecarga(fechaBaseRecarga(cuenta, hoy), draft.pin, cuenta.costo_mensual)).toLocaleDateString()}
+                          📅 Próxima recarga estimada: {formatearFecha(calcularProximaRecarga(fechaBaseRecarga(cuenta, hoy), draft.pin, cuenta.costo_mensual))}
                           {' '}({diasCubiertosPorPin(draft.pin, cuenta.costo_mensual)} días)
                         </p>
                       </div>
@@ -350,11 +351,11 @@ export const CostosTab = ({ streaming, mesActivo }: CostosTabProps) => {
                     <td className="px-4 py-3 text-white/80 font-mono text-xs">{costo.codigo_pin || '—'}</td>
                     <td className="px-4 py-3 text-orange-300 text-sm">
                       {costo.servicio === 'Netflix' && costo.cuenta?.costo_mensual
-                        ? new Date(calcularProximaRecarga(costo.fecha_pago, costo.monto, costo.cuenta.costo_mensual)).toLocaleDateString()
+                        ? formatearFecha(calcularProximaRecarga(costo.fecha_pago, costo.monto, costo.cuenta.costo_mensual))
                         : '—'}
                     </td>
                     <td className="px-4 py-3 text-white/80 text-sm">
-                      {new Date(costo.fecha_pago).toLocaleDateString()}
+                      {formatearFecha(costo.fecha_pago)}
                     </td>
                     <td className="px-4 py-3 text-white/80">{costo.banco_origen}</td>
                   </tr>
