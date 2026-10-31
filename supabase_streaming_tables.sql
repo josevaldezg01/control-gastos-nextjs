@@ -57,9 +57,15 @@ CREATE TABLE IF NOT EXISTS suscripciones (
   fecha_fin DATE,
   activa BOOLEAN DEFAULT true,
   notas TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  CONSTRAINT unique_tipo_acceso_por_cuenta UNIQUE (cuenta_id, tipo_acceso, activa)
+  created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Solo puede haber UNA suscripción ACTIVA por cuenta+tipo_acceso.
+-- Las canceladas (activa = false) no cuentan, por eso es un índice parcial
+-- y no una restricción UNIQUE normal sobre las 3 columnas.
+CREATE UNIQUE INDEX IF NOT EXISTS unique_tipo_acceso_activo_por_cuenta
+  ON suscripciones (cuenta_id, tipo_acceso)
+  WHERE activa = true;
 
 COMMENT ON TABLE suscripciones IS 'Asignación de pantallas/perfiles a clientes';
 COMMENT ON COLUMN suscripciones.tipo_acceso IS 'Pantalla 1-4, Perfil 1-5, Cuenta principal, Cuenta vinculada 1-5';
