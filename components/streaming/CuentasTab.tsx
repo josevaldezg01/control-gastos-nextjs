@@ -205,6 +205,16 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
                   </div>
                 )}
 
+                {/* Add-on de otra cuenta */}
+                {cuenta.cuenta_padre_id && (() => {
+                  const padre = streaming.cuentas.find((c) => c.id === cuenta.cuenta_padre_id);
+                  return (
+                    <div className="text-cyan-300 text-xs mb-2 truncate">
+                      📎 Add-on de {padre ? `${padre.servicio} — ${padre.email}` : `cuenta #${cuenta.cuenta_padre_id}`}
+                    </div>
+                  );
+                })()}
+
                 {/* Tipo de cuenta */}
                 <div className="text-white/80 text-sm mb-2">{cuenta.tipo_cuenta}</div>
 
@@ -359,6 +369,7 @@ export const CuentasTab = ({ streaming }: CuentasTabProps) => {
       {mostrandoModal && (
         <CuentaModal
           cuenta={cuentaEditando}
+          cuentasDisponibles={streaming.cuentas}
           onClose={cerrarModal}
           onGuardar={async (datos) => {
             if (cuentaEditando) {

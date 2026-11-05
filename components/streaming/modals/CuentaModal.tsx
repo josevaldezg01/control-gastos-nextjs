@@ -6,6 +6,7 @@ import { CuentaStreaming } from '@/hooks/useStreaming';
 
 interface CuentaModalProps {
   cuenta?: CuentaStreaming | null;
+  cuentasDisponibles?: CuentaStreaming[];
   onClose: () => void;
   onGuardar: (cuenta: any) => Promise<void>;
 }
@@ -20,9 +21,16 @@ const tiposCuentaPorServicio: Record<string, string[]> = {
   'YouTube Premium': ['Premium (1 principal + 5 vinculadas)']
 };
 
-export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) => {
+// Las cuentas add-on guardan el tipo_cuenta con un sufijo " (via <servicio padre>)"
+// para que se note en los listados. Esto lo arma el modal solo, no hace falta
+// que el usuario lo escriba a mano.
+const SUFIJO_VIA = / \(via .+\)$/;
+const quitarSufijoVia = (tipo: string) => tipo.replace(SUFIJO_VIA, '');
+
+export const CuentaModal = ({ cuenta, cuentasDisponibles = [], onClose, onGuardar }: CuentaModalProps) => {
   const [servicio, setServicio] = useState(cuenta?.servicio || 'Netflix');
-  const [tipoCuenta, setTipoCuenta] = useState(cuenta?.tipo_cuenta || '');
+  const [tipoCuenta, setTipoCuenta] = useState(cuenta ? quitarSufijoVia(cuenta.tipo_cuenta) : '');
+  const [cuentaPadreId, setCuentaPadreId] = useState<string>(cuenta?.cuenta_padre_id?.toString() || '');
   const [costoMensual, setCostoMensual] = useState(cuenta?.costo_mensual?.toString() || '');
   const [diaPago, setDiaPago] = useState(cuenta?.dia_pago?.toString() || '');
   const [proximaRecarga, setProximaRecarga] = useState(cuenta?.proxima_recarga || '');
@@ -53,16 +61,20 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
 
     setGuardando(true);
     try {
+      const padre = cuentaPadreId ? cuentasDisponibles.find(c => c.id === parseInt(cuentaPadreId)) : null;
+      const tipoCuentaFinal = padre ? `${tipoCuenta} (via ${padre.servicio})` : tipoCuenta;
+
       const datosCuenta = {
         servicio,
-        tipo_cuenta: tipoCuenta,
+        tipo_cuenta: tipoCuentaFinal,
         costo_mensual: parseFloat(costoMensual),
         dia_pago: diaPago ? parseInt(diaPago) : null,
         proxima_recarga: servicio === 'Netflix' ? (proximaRecarga || null) : null,
         email: email.trim(),
         tarjeta_vinculada: servicio !== 'Netflix' ? (tarjetaVinculada.trim() || null) : null,
         notas: notas || null,
-        activa
+        activa,
+        cuenta_padre_id: cuentaPadreId ? parseInt(cuentaPadreId) : null
       };
 
       await onGuardar(datosCuenta);
@@ -219,6 +231,32 @@ export const CuentaModal = ({ cuenta, onClose, onGuardar }: CuentaModalProps) =>
               rows={3}
             />
           </div>
+
+          {/* Cuenta padre (add-on) */}
+          {cuentasDisponibles.length > 0 && (
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">
+                ¿Es un add-on de otra cuenta?
+              </label>
+              <select
+                value={cuentaPadreId}
+                onChange={(e) => setCuentaPadreId(e.target.value)}
+                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none"
+              >
+                <option value="">No, es una cuenta independiente</option>
+                {cuentasDisponibles
+                  .filter((c) => c.id !== cuenta?.id && c.activa)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.servicio} — {c.email || `cuenta #${c.id}`}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-white/40 text-xs mt-1">
+                Ej: HBO Max contratado como canal adicional dentro de una cuenta de Prime Video. Se sigue manejando como cuenta independiente (su propio costo, fecha de pago y clientes), solo queda marcada de dónde sale el cobro.
+              </p>
+            </div>
+          )}
 
           {/* Activa / Inactiva */}
           <div className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">

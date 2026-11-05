@@ -17,6 +17,7 @@ export interface CuentaStreaming {
   pin_pendiente_valor: number | null;
   proxima_recarga: string | null;
   tarjeta_vinculada: string | null;
+  cuenta_padre_id: number | null;
   created_at: string;
 }
 

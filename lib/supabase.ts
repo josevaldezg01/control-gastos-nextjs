@@ -309,6 +309,7 @@ export const streamingHelpers = {
     email?: string;
     tarjeta_vinculada?: string;
     notas?: string;
+    cuenta_padre_id?: number | null;
   }) {
     const { data, error } = await supabase
       .from('cuentas_streaming')
