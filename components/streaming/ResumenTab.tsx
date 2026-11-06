@@ -68,6 +68,59 @@ export const ResumenTab = ({ streaming }: ResumenTabProps) => {
         </div>
       </div>
 
+      {/* Proyección mensual: todos los clientes, cobrado o no todavía */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Ingreso Mensual Total */}
+        <div className="bg-teal-500/20 border-2 border-teal-500 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-teal-300 text-sm font-medium">Ingreso Mensual Total</span>
+            <span className="text-2xl">📥</span>
+          </div>
+          <div className="text-3xl font-bold text-white">
+            {formatoMoneda(metricas.ingresoMensualTotal)}
+          </div>
+          <div className="text-xs text-white/60 mt-1">
+            Todas las suscripciones activas, cobradas o no
+          </div>
+        </div>
+
+        {/* Costo Mensual Total */}
+        <div className="bg-pink-500/20 border-2 border-pink-500 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-pink-300 text-sm font-medium">Costo Mensual Total</span>
+            <span className="text-2xl">📤</span>
+          </div>
+          <div className="text-3xl font-bold text-white">
+            {formatoMoneda(metricas.costoMensualTotal)}
+          </div>
+          <div className="text-xs text-white/60 mt-1">
+            Todas las cuentas activas, pagadas o no
+          </div>
+        </div>
+
+        {/* Utilidad Proyectada */}
+        <div className={`border-2 rounded-lg p-6 ${
+          metricas.utilidadProyectada >= 0
+            ? 'bg-emerald-500/20 border-emerald-500'
+            : 'bg-orange-500/20 border-orange-500'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm font-medium ${
+              metricas.utilidadProyectada >= 0 ? 'text-emerald-300' : 'text-orange-300'
+            }`}>
+              Utilidad Proyectada
+            </span>
+            <span className="text-2xl">🎯</span>
+          </div>
+          <div className="text-3xl font-bold text-white">
+            {formatoMoneda(metricas.utilidadProyectada)}
+          </div>
+          <div className="text-xs text-white/60 mt-1">
+            Si se cobra y se paga todo este mes
+          </div>
+        </div>
+      </div>
+
       {/* Pendientes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Cobros Pendientes */}

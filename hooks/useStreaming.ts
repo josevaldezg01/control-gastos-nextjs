@@ -125,6 +125,9 @@ export interface MetricasStreaming {
   montoPendiente: number;
   costosPendientes: number;
   montoCostosPendiente: number;
+  ingresoMensualTotal: number;
+  costoMensualTotal: number;
+  utilidadProyectada: number;
 }
 
 export interface EspaciosDisponibles {
@@ -524,6 +527,16 @@ export const useStreaming = (mesActivo: string) => {
     const costosPendientesList = cuentas.filter(cuentaEstaPendiente);
     const montoCostosPendiente = costosPendientesList.reduce((sum, c) => sum + c.costo_mensual, 0);
 
+    // Ingreso/costo mensual recurrente (todas las suscripciones y cuentas activas,
+    // cobradas o no todavia este mes) y la utilidad proyectada si todo se cobra/paga.
+    const ingresoMensualTotal = suscripciones
+      .filter(s => s.activa)
+      .reduce((sum, s) => sum + s.costo_mensual, 0);
+    const costoMensualTotal = cuentas
+      .filter(c => c.activa)
+      .reduce((sum, c) => sum + c.costo_mensual, 0);
+    const utilidadProyectada = ingresoMensualTotal - costoMensualTotal;
+
     return {
       totalCobrado,
       totalGastado,
@@ -531,7 +544,10 @@ export const useStreaming = (mesActivo: string) => {
       cobrosPendientes: cobrosPendientesList.length,
       montoPendiente,
       costosPendientes: costosPendientesList.length,
-      montoCostosPendiente
+      montoCostosPendiente,
+      ingresoMensualTotal,
+      costoMensualTotal,
+      utilidadProyectada
     };
   }, [pagos, costos, suscripciones, cuentas, cuentaEstaPendiente]);
 
