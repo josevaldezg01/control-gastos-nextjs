@@ -1,3 +1,17 @@
+# Reglas generales del proyecto
+
+## Revisar git status por archivos ajenos antes de cualquier commit
+
+Este repo vive dentro de una carpeta general de OneDrive ("Programas Jose Valdez") donde el usuario
+guarda archivos de otros proyectos sueltos (APKs, documentos, etc.), no solo los de esta app. Pasó en la
+práctica: un archivo `appx.apk` de 63MB apareció sin seguimiento en la raíz del repo y estuvo a punto de
+quedar listo para commitear junto con cambios legítimos.
+
+Ya existe la práctica de nunca usar `git add -A`/`git add .` y listar archivos específicos por nombre
+— eso evita el 90% del riesgo. Pero además: antes de armar un commit, repasar la lista completa de
+`git status --short` (no solo los archivos que uno espera encontrar) y preguntar por cualquier archivo
+nuevo que no tenga relación obvia con la tarea en curso, en vez de asumir que es inofensivo.
+
 # Reglas de base de datos (Supabase/Postgres)
 
 ## No incluir columnas de estado (activa/activo/eliminado) dentro de un UNIQUE normal

@@ -26,6 +26,15 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
     return `$${valor.toLocaleString()}`;
   };
 
+  // Si la cuenta es un add-on (ej. HBO Max contratado dentro de una cuenta Prime),
+  // mostrar "HBO Max via Prime Video" en vez de solo "HBO Max".
+  const etiquetaServicio = (cuenta?: { servicio: string; cuenta_padre_id: number | null }) => {
+    if (!cuenta) return '';
+    if (!cuenta.cuenta_padre_id) return cuenta.servicio;
+    const padre = streaming.cuentas.find((c) => c.id === cuenta.cuenta_padre_id);
+    return padre ? `${cuenta.servicio} via ${padre.servicio}` : cuenta.servicio;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -101,7 +110,7 @@ export const SuscripcionesTab = ({ streaming }: SuscripcionesTabProps) => {
                     }`}
                   >
                     <td className="px-4 py-3 text-white">{suscripcion.cliente?.nombre}</td>
-                    <td className="px-4 py-3 text-white">{suscripcion.cuenta?.servicio}</td>
+                    <td className="px-4 py-3 text-white">{etiquetaServicio(suscripcion.cuenta)}</td>
                     <td className="px-4 py-3 text-white/80 text-sm">{suscripcion.tipo_acceso}</td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {suscripcion.email_acceso ? (
